@@ -1,0 +1,12 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "shopify-dev": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@shopify/dev-mcp@latest"
+            ]
+        }
+    }
+}
