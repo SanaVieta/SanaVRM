@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   reactCompiler: true,
+  // TypeORM loads its driver (`pg`) with a runtime require, which breaks when bundled.
+  serverExternalPackages: ["typeorm"],
   turbopack: {
     rules: {
       "*.css": {
