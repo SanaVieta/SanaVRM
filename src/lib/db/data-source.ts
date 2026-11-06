@@ -12,5 +12,6 @@ export const AppDataSource = new DataSource({
   // todo: add entities here
   entities: [],
   subscribers: [],
+  // todo: setup the migrations folder here
   migrations: [],
 });
