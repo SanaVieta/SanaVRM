@@ -66,8 +66,8 @@ describe("getDb", () => {
     const getDb = await loadGetDb();
 
     await expect(getDb()).rejects.toBe(error);
-    expect(dataSource.initialize).toHaveBeenCalledTimes(3);
-    expect(sleepMock).toHaveBeenCalledTimes(2);
+    expect(dataSource.initialize).toHaveBeenCalledTimes(4);
+    expect(sleepMock).toHaveBeenCalledTimes(3);
   });
 
   it("shares one set of attempts between concurrent callers", async () => {
@@ -81,7 +81,7 @@ describe("getDb", () => {
       "rejected",
       "rejected",
     ]);
-    expect(dataSource.initialize).toHaveBeenCalledTimes(3);
+    expect(dataSource.initialize).toHaveBeenCalledTimes(4);
   });
 
   it("starts a fresh set of attempts after giving up", async () => {
