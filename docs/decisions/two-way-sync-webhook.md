@@ -2,10 +2,10 @@
 
 ## Rules
 
-- Shopify receives a payload (Inventory, Customer, Order) -> sent to edge function (sync layer) 
+- Shopify receives a payload (Inventory, Customer, Order, Product) -> sent to edge function (sync layer) 
 - Sync layer receives shopify metadata -> stored in Supabase / Postgres
 - CRM fetches database records from Supabase
-- If Lead is converted to a customer, it should be sent to shopify
+- If Lead is converted to a customer, it should be sent to shopify (Leads should not be sent via webhook)
 
 ## Outbound flow
 
@@ -28,7 +28,7 @@
 ### How it works
 
 1. CRM or app logic writes Shopify-bound changes to an **outbox** table (pending rows with payload, entity type, idempotency key).
-2. **`pg_cron`** schedules a job every ~1 minute that invokes the **Sync Layer Edge Function** (HTTP) or runs a wrapper that does.
+2. `pg_cron` schedules a job every ~1 minute that invokes the **Sync Layer Edge Function** (HTTP) or runs a wrapper that does.
 3. The function **polls** outbox rows in `pending` (or `failed` under retry policy), processes them in **batch**, calls Shopify Admin API, then marks rows `sent` or `failed` with error detail.
 4. Inbound Shopify webhooks still write directly to Postgres via the sync layer; this path is **outbound only**.
 
@@ -65,8 +65,6 @@
 - Edge Function: idempotent Shopify writes; respect 429 with backoff inside the batch.
 - Monitor: alert on outbox rows stuck in `failed` after N attempts.
 
-
-
 If sub-minute outbound latency becomes a requirement, see **Option A (deferred)** below.
 
 ---
@@ -77,7 +75,7 @@ If sub-minute outbound latency becomes a requirement, see **Option A (deferred)*
 
 ### How it works
 
-A trigger on the outbox table calls the Edge Function through **`pg_net`** as soon as a row is inserted (no cron poll).
+A trigger on the outbox table calls the Edge Function through `pg_net` as soon as a row is inserted (no cron poll).
 
 | | Detail |
 | --- | --- |
