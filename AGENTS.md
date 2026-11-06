@@ -95,6 +95,12 @@ Keep PRs focused; call out breaking changes and migration steps explicitly.
  - Follow test driven development patterns
  - For every new feature integrated, write tests under /tests
  - If tests exist for an existing integration, update existing tests. Otherwise, create new ones if they don't exist 
+# E2E Testing
+No instructions yet
+# UI Testing
+No instructions yet
+
+
 # The Loop
 For every change made, run the following commands to ensure the code conforms to formatting and linting practices and to ensure the project build
 ```bash
@@ -127,6 +133,33 @@ Keep names consistent so the codebase stays readable.
 
 - Use **camelCase**.
 - Prefix unused variables with `_`.
+
+# PRs
+
+When opening the PR, convert the branch name into the title.
+
+The description should consist of:
+
+- The additions or changes in the branch, based on the files touched, the lines changed, and the commit history.
+- An outline of those changes and their impact.
+
+### Example
+
+Branch: `db-layer` (12 commits, 13 files, +1594 / −29 vs `main`)
+
+**Title:** Db layer
+
+**Description:**
+
+This branch adds a server-side Postgres connection and the tests around it.
+
+- `src/lib/db/data-source.ts` and `src/lib/db/getDB.ts` connect with TypeORM and retry a failed connection up to 3 times (`b3d34bb`, `5180898`).
+- `src/instrumentation.ts` opens that connection when the Next.js Node.js runtime starts (`11905a2`).
+- `next.config.ts` lists TypeORM in `serverExternalPackages` so the server bundle does not break on a runtime `require` (`92be82e`).
+- `docker-compose.yaml`, `README.md`, and the `pg` / `typeorm` dependencies run Postgres in Docker locally. Sandbox and production stay on Supabase (`ae2e364`, `c773bba`, `254f446`).
+- Vitest is configured in `vitest.config.mts`, with tests for `getDb` and instrumentation (`e53e0d9`, `a4efbb3`, `tests/lib/db/get-db.test.ts`, `tests/instrumentation.test.ts`).
+
+**Impact:** The Node.js server now connects to the database at startup. Local development depends on the Docker Postgres service. A failed connection is retried three times before the error surfaces. Client bundles are unchanged.
 
 <!-- BEGIN:nextjs-agent-feedback -->
 
