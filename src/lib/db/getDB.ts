@@ -8,7 +8,7 @@ const retryDelayMs = 10000;
 let initializing: Promise<DataSource> | undefined;
 
 async function connectWithRetry(): Promise<DataSource> {
-  for (let attempt = 1; ; attempt++) {
+  for (let attempt = 0; ; attempt++) {
     try {
       return await AppDataSource.initialize();
     } catch (error) {
@@ -16,7 +16,7 @@ async function connectWithRetry(): Promise<DataSource> {
         throw error;
       }
       console.warn(
-        `Database connection attempt ${attempt}/${maxAttempts} failed, retrying in ${retryDelayMs}ms`,
+        `Database connection attempt ${attempt + 1}/${maxAttempts} failed, retrying in ${retryDelayMs}ms`,
         error,
       );
       await sleepFor(retryDelayMs);
