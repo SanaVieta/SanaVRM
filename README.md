@@ -78,6 +78,12 @@ SanaVRM is a lightweight CRM that extends Shopify data with relationship managem
 - Auth: Shopify OAuth for app installation
 - Webhooks: verified HMAC signatures
 
+### Database
+- **PostgreSQL, no streaming replication.** A single primary per environment; no standbys.
+- **ORM:** TypeORM.
+- **Local development:** PostgreSQL in Docker.
+- **Sandbox and production:** Supabase-hosted PostgreSQL. Supabase manages replication and backups.
+
 ## Next Steps
 - [x] Define database schema (`docs/schema.md`)
 - [ ] Implement Shopify OAuth + webhook receiver

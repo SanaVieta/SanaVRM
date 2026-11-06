@@ -90,3 +90,94 @@ Keep PRs focused; call out breaking changes and migration steps explicitly.
 - Follow user requirements carefully and completely.
 - Ship working, bug-free behavior; do not skip error paths to save time.
 - Be concise in chat; prefer precise code and docs over long prose.
+
+# Testing
+ - Follow test driven development patterns
+ - For every new feature integrated, write tests under /tests
+ - If tests exist for an existing integration, update existing tests. Otherwise, create new ones if they don't exist 
+# E2E Testing
+No instructions yet
+# UI Testing
+No instructions yet
+
+
+# The Loop
+For every change made, run the following commands to ensure the code conforms to formatting and linting practices and to ensure the project build
+```bash
+    npm run build # builds project
+    npm run lint # Linting
+    npm run format # Formatting
+    npm run test # Testing
+
+```
+
+Rules:
+
+- Run the loop yourself from the repo root after every code change, before you finish. Do not hand it back to the user.
+- Run the commands in the order above. If one fails, stop, fix the cause, and start again from `npm run build`.
+- `npm run format` rewrites files. If it changes anything, run `npm run lint` and `npm run build` again. The loop is done only when all three succeed and format leaves no further diff.
+- Fix the underlying issue. Do not add `biome-ignore` comments, skip the build, or weaken types to force a green loop.
+- If you cannot get the loop green, say which command failed and paste the error. Do not claim the change is done.
+- If an integration breaks an existing test, understand the breaking change and fix the integration. Do not modify the test unless that is necessary.
+
+# Naming conventions
+
+Keep names consistent so the codebase stays readable.
+
+### Functions
+
+- Use **camelCase**.
+- Use at least two words. A single-word name is acceptable only when a longer name would not be clearer.
+
+### Variables
+
+- Use **camelCase**.
+- Prefix unused variables with `_`.
+
+# PRs
+Use the Github MCP if it exists
+When opening the PR, convert the branch name into the title.
+
+The description should consist of:
+
+- The additions or changes in the branch, based on the files touched, the lines changed, and the commit history.
+- An outline of those changes and their impact.
+
+### Example
+
+Branch: `db-layer` (12 commits, 13 files, +1594 / −29 vs `main`)
+
+**Title:** Db layer
+
+**Description:**
+
+This branch adds a server-side Postgres connection and the tests around it.
+
+- `src/lib/db/data-source.ts` and `src/lib/db/getDB.ts` connect with TypeORM and retry a failed connection up to 3 times (`b3d34bb`, `5180898`).
+- `src/instrumentation.ts` opens that connection when the Next.js Node.js runtime starts (`11905a2`).
+- `next.config.ts` lists TypeORM in `serverExternalPackages` so the server bundle does not break on a runtime `require` (`92be82e`).
+- `docker-compose.yaml`, `README.md`, and the `pg` / `typeorm` dependencies run Postgres in Docker locally. Sandbox and production stay on Supabase (`ae2e364`, `c773bba`, `254f446`).
+- Vitest is configured in `vitest.config.mts`, with tests for `getDb` and instrumentation (`e53e0d9`, `a4efbb3`, `tests/lib/db/get-db.test.ts`, `tests/instrumentation.test.ts`).
+
+**Impact:** The Node.js server now connects to the database at startup. Local development depends on the Docker Postgres service. A failed connection is retried three times before the error surfaces. Client bundles are unchanged.
+
+<!-- BEGIN:nextjs-agent-feedback -->
+
+## Report Next.js feedback
+
+The project owner enabled `experimental.agentFeedback`, authorizing this feedback pass. When enabled, `next dev` writes this block and restores it if removed. Commit `AGENTS.md` with your work to keep the tree clean.
+
+During the current user request, retain anonymized facts as feedback candidates for meaningful or recurring Next.js issues:
+
+- Crashes, hangs, OOMs, or unexpected slowness
+- Incorrect behavior, output, errors, or diagnostics
+- Missing, unclear, or conflicting documentation
+- Unexpected CLI, codemod, Skill, or upgrade behavior and non-obvious workarounds
+
+Continue the current user request without reporting immediately. Routine debugging is not feedback. Verify changes before retaining them as feedback candidates. Never retain code, logs, paths, URLs, secrets, personal information, or project-specific data.
+
+Retain qualifying friction even if it is later fixed or worked around; record the final outcome during the reporting pass.
+
+Before the final response, run one reporting pass. If candidates remain, from this file's directory run `npx --no-install next internal agent-feedback-instructions` once without piping or truncating its output. Follow its output or error guidance. If a network sandbox blocks it, retry with network access; if it still returns no output, continue normally.
+
+<!-- END:nextjs-agent-feedback -->
