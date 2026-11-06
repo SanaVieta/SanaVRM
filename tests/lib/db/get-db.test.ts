@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const sleep = vi.hoisted(() => vi.fn(async (_ms: number) => undefined));
+const sleepMock = vi.hoisted(() => vi.fn(async (_ms: number) => undefined));
 const dataSource = vi.hoisted(() => ({
   isInitialized: false,
   initialize: vi.fn(),
 }));
 
-vi.mock("node:timers/promises", () => ({ setTimeout: sleep }));
+vi.mock("node:timers/promises", () => ({ setTimeout: sleepMock }));
 vi.mock("@/lib/db/data-source", () => ({ AppDataSource: dataSource }));
 
 // getDb keeps module-level state, so every test loads a fresh copy.
@@ -15,7 +15,7 @@ async function loadGetDb() {
   return (await import("@/lib/db/getDB")).getDb;
 }
 
-async function connect() {
+async function connectDataSource() {
   dataSource.isInitialized = true;
   return dataSource;
 }
@@ -24,7 +24,7 @@ describe("getDb", () => {
   beforeEach(() => {
     dataSource.isInitialized = false;
     dataSource.initialize.mockReset();
-    sleep.mockClear();
+    sleepMock.mockClear();
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
   });
 
@@ -41,23 +41,23 @@ describe("getDb", () => {
   });
 
   it("connects on the first attempt without waiting", async () => {
-    dataSource.initialize.mockImplementation(connect);
+    dataSource.initialize.mockImplementation(connectDataSource);
     const getDb = await loadGetDb();
 
     await expect(getDb()).resolves.toBe(dataSource);
     expect(dataSource.initialize).toHaveBeenCalledTimes(1);
-    expect(sleep).not.toHaveBeenCalled();
+    expect(sleepMock).not.toHaveBeenCalled();
   });
 
   it("retries after a failed attempt, then connects", async () => {
     dataSource.initialize
       .mockRejectedValueOnce(new Error("connection refused"))
-      .mockImplementation(connect);
+      .mockImplementation(connectDataSource);
     const getDb = await loadGetDb();
 
     await expect(getDb()).resolves.toBe(dataSource);
     expect(dataSource.initialize).toHaveBeenCalledTimes(2);
-    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(sleepMock).toHaveBeenCalledTimes(1);
   });
 
   it("gives up after 3 attempts and rethrows the last error", async () => {
@@ -67,7 +67,7 @@ describe("getDb", () => {
 
     await expect(getDb()).rejects.toBe(error);
     expect(dataSource.initialize).toHaveBeenCalledTimes(3);
-    expect(sleep).toHaveBeenCalledTimes(2);
+    expect(sleepMock).toHaveBeenCalledTimes(2);
   });
 
   it("shares one set of attempts between concurrent callers", async () => {
@@ -89,7 +89,7 @@ describe("getDb", () => {
     const getDb = await loadGetDb();
     await expect(getDb()).rejects.toThrow("connection refused");
 
-    dataSource.initialize.mockImplementation(connect);
+    dataSource.initialize.mockImplementation(connectDataSource);
 
     await expect(getDb()).resolves.toBe(dataSource);
   });

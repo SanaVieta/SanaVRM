@@ -1,9 +1,9 @@
-import { setTimeout as sleep } from "node:timers/promises";
+import { setTimeout as sleepFor } from "node:timers/promises";
 import type { DataSource } from "typeorm";
 import { AppDataSource } from "@/lib/db/data-source";
 
-const MAX_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 10000;
+const maxAttempts = 3;
+const retryDelayMs = 10000;
 
 let initializing: Promise<DataSource> | undefined;
 
@@ -12,14 +12,14 @@ async function connectWithRetry(): Promise<DataSource> {
     try {
       return await AppDataSource.initialize();
     } catch (error) {
-      if (attempt >= MAX_ATTEMPTS) {
+      if (attempt >= maxAttempts) {
         throw error;
       }
       console.warn(
-        `Database connection attempt ${attempt}/${MAX_ATTEMPTS} failed, retrying in ${RETRY_DELAY_MS}ms`,
+        `Database connection attempt ${attempt}/${maxAttempts} failed, retrying in ${retryDelayMs}ms`,
         error,
       );
-      await sleep(RETRY_DELAY_MS);
+      await sleepFor(retryDelayMs);
     }
   }
 }
@@ -29,9 +29,7 @@ export async function getDb(): Promise<DataSource> {
     return AppDataSource;
   }
 
-  // Shared by concurrent first calls so the retries run once, not per caller.
   initializing ??= connectWithRetry().catch((error) => {
-    // After the attempts are used up, let a later call start a fresh set.
     initializing = undefined;
     throw error;
   });
