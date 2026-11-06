@@ -135,7 +135,7 @@ Keep names consistent so the codebase stays readable.
 - Prefix unused variables with `_`.
 
 # PRs
-
+Use the Github MCP if it exists
 When opening the PR, convert the branch name into the title.
 
 The description should consist of:
