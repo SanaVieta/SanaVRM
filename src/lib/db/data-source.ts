@@ -1,4 +1,6 @@
+import "reflect-metadata";
 import { DataSource } from "typeorm";
+import schemas from "./schemas";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -9,9 +11,8 @@ export const AppDataSource = new DataSource({
   database: process.env.POSTGRES_DB,
   synchronize: false,
   logging: true,
-  // todo: add entities here
-  entities: [],
+  entities: schemas,
   subscribers: [],
   // todo: setup the migrations folder here
-  migrations: [],
+  migrations: [__dirname + "/migrations/**/*{.js,.ts}"],
 });
