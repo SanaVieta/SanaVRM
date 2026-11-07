@@ -100,6 +100,8 @@ No instructions yet
 # UI Testing
 No instructions yet
 
+# Assumptions
+No instructions yet
 
 # The Loop
 For every change made, run the following commands to ensure the code conforms to formatting and linting practices and to ensure the project build
