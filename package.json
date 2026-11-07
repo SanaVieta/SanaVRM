@@ -9,7 +9,12 @@
     "lint": "biome check",
     "format": "biome format --write",
     "test": "vitest",
-    "db:seed": "tsx --env-file=.env scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env scripts/seed.ts",
+    "db:migrate": "tsx --env-file=.env ./node_modules/typeorm/cli.js migration:run -d ./src/lib/db/data-source.ts",
+    "db:migrate:revert": "tsx --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d ./src/lib/db/data-source.ts",
+    "db:migrate:show": "tsx --env-file=.env ./node_modules/typeorm/cli.js migration:show -d ./src/lib/db/data-source.ts",
+    "db:migration:generate": "tsx --env-file=.env ./node_modules/typeorm/cli.js migration:generate -d ./src/lib/db/data-source.ts",
+    "db:migration:create": "tsx --env-file=.env ./node_modules/typeorm/cli.js migration:create"
   },
   "dependencies": {
     "next": "16.4.5",
