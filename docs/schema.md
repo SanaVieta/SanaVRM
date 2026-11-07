@@ -50,7 +50,7 @@ CRM-only prospects. **Source of truth: SanaVRM.** A lead is **not** a Shopify en
 | state               | text        | Customer master list column                |
 | company             | text        |                                            |
 | source              | text        | e.g. `csv:2026-11-campaign`, `webinar`     |
-| status              | text        | e.g. `new`, `contacted`, `qualified`, `lost` |
+| status              | enum (`lead_status`) | `new`, `contacted`, `qualified`, `converted`, `lost`; default `new`. `new` → `contacted` → `qualified` → `converted`, `lost` exits from any state. Setting `converted` queues the outbound Shopify customer creation (see docs/decisions/two-way-sync-webhook.md) |
 | tags                | text[]      | CRM-only                                   |
 | notes               | text        | CRM-only                                   |
 | customer_id         | uuid        | FK → customers.id, `ON DELETE SET NULL`; null until a Shopify customer exists for this lead |
@@ -111,7 +111,7 @@ Each row is one **variant** (Shopify’s sellable SKU). Inventory is stored in `
 | title               | text        | Variant / product display name |
 | vendor              | text        | Shopify product `vendor`; repeated on each variant row of the product |
 | product_type        | text        | Shopify `productType`; repeated on each variant row |
-| status              | text        | Shopify product status: `active`, `draft`, `archived`; repeated on each variant row |
+| status              | enum (`product_status`) | Shopify product status: `active`, `draft`, `archived`; repeated on each variant row |
 | image_url           | text        | Variant image URL, falling back to the product's featured image; null if none |
 | sku                 | text        |                           |
 | price               | numeric     |                           |
