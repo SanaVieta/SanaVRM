@@ -5,7 +5,7 @@ import schemas from "./schemas";
 export const AppDataSource = new DataSource({
   type: "postgres",
   host: process.env.POSTGRES_HOST,
-  port: parseInt(process.env.POSTGRES_PORT || "5432"),
+  port: parseInt(process.env.POSTGRES_PORT || "5432", 10),
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
@@ -14,5 +14,5 @@ export const AppDataSource = new DataSource({
   entities: schemas,
   subscribers: [],
   // todo: setup the migrations folder here
-  migrations: [__dirname + "/migrations/**/*{.js,.ts}"],
+  migrations: [`${__dirname}/migrations/**/*{.js,.ts}`],
 });
