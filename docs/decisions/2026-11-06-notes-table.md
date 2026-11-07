@@ -1,6 +1,6 @@
 # Decision: Normalize notes into a `notes` table
 
-**Status:** agr  
+**Status:** accepted  
 **Date:** 2026-11-06
 
 ## Context
