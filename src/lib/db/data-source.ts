@@ -13,6 +13,5 @@ export const AppDataSource = new DataSource({
   logging: true,
   entities: schemas,
   subscribers: [],
-  // todo: setup the migrations folder here
   migrations: [`${__dirname}/migrations/**/*{.js,.ts}`],
 });
