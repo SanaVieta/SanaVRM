@@ -54,6 +54,7 @@ When adding code, write it so `yarn lint` passes without suppressions. Prefer fi
 - Fetch on the server when possible (RSC, Server Actions, Route Handlers).
 - Every user-facing data surface needs explicit **loading** and **error** UI (`loading.tsx`, `error.tsx`, or equivalent boundaries).
 - **Error handling:** catch failures, show safe messages to users, log details server-side (no secrets in client logs).
+- **API error handling:** In callbacks passed to `handleRequest` (`src/lib/api-utils.ts`), throw an `ApiError` for expected HTTP failures. For example, if a requested database record does not exist, throw `new ApiError(404, "Record not found")` (import `ApiError` from `next/dist/server/api-utils`, as the helper does). Use an appropriate status code and a safe, client-facing message for other expected errors. The helper returns the `ApiError` status and message as JSON; unexpected errors are logged server-side and return a generic 500. Do not silently return a successful response for a missing record.
 - Validate inputs at trust boundaries; use typed Supabase clients and RLS-aware patterns.
 
 ## HTML and accessibility
