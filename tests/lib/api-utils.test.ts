@@ -63,35 +63,31 @@ describe("handleRequest", () => {
     expect(await response.json()).toEqual({ doubled: 8 });
   });
 
-  it("returns a 400 with the issues and skips the callback when validation fails", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("returns a 400 with the readable issues and skips the callback when validation fails", async () => {
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
     const callback = vi.fn();
 
     try {
-      const body = { body: "", customerId: "nope" };
-      const result = noteSchema.safeParse(body);
-      if (result.success) throw new Error("expected validation to fail");
-
       const response = await handleRequest(callback, {
         schema: noteSchema,
-        body,
+        body: { body: "", customerId: "nope" },
       });
 
       expect(callback).not.toHaveBeenCalled();
-      expect(warn).toHaveBeenCalledOnce();
+      expect(logError).toHaveBeenCalledOnce();
       expect(response.status).toBe(400);
       const { error } = await response.json();
-      expect(error).toEqual(JSON.parse(JSON.stringify(result.error.issues)));
-      expect(error.map((issue: { path: string[] }) => issue.path[0])).toEqual(
-        expect.arrayContaining(["id", "body", "customerId"]),
-      );
+      expect(error).toEqual(expect.any(String));
+      for (const field of ["id", "body", "customerId"]) {
+        expect(error).toContain(field);
+      }
     } finally {
-      warn.mockRestore();
+      logError.mockRestore();
     }
   });
 
   it("validates with an async schema", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
     const schema = z.object({
       name: z.string().refine(async (name) => name !== "taken"),
     });
@@ -109,7 +105,7 @@ describe("handleRequest", () => {
       expect(ok.status).toBe(200);
       expect(taken.status).toBe(400);
     } finally {
-      warn.mockRestore();
+      logError.mockRestore();
     }
   });
 
