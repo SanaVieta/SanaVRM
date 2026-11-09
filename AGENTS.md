@@ -54,6 +54,7 @@ When adding code, write it so `yarn lint` passes without suppressions. Prefer fi
 - Fetch on the server when possible (RSC, Server Actions, Route Handlers).
 - Every user-facing data surface needs explicit **loading** and **error** UI (`loading.tsx`, `error.tsx`, or equivalent boundaries).
 - **Error handling:** catch failures, show safe messages to users, log details server-side (no secrets in client logs).
+- **API error handling:** In callbacks passed to `handleRequest` (`src/lib/api-utils.ts`), throw an `ApiError` for expected HTTP failures. For example, if a requested database record does not exist, throw `new ApiError(404, "Record not found")` (import `ApiError` from `next/dist/server/api-utils`, as the helper does). Use an appropriate status code and a safe, client-facing message for other expected errors. The helper returns the `ApiError` status and message as JSON; unexpected errors are logged server-side and return a generic 500. Do not silently return a successful response for a missing record.
 - Validate inputs at trust boundaries; use typed Supabase clients and RLS-aware patterns.
 
 ## HTML and accessibility
@@ -96,13 +97,49 @@ Keep PRs focused; call out breaking changes and migration steps explicitly.
  - For every new feature integrated, write tests under /tests
  - If tests exist for an existing integration, update existing tests. Otherwise, create new ones if they don't exist 
 # E2E Testing
-No instructions yet
+
+Verify the change against a running app. Vitest tests under `/tests` stay the unit and integration layer. An e2e check is required when the change is only visible over HTTP or in the browser.
+
+Pick the tool from the surface:
+
+- **API** — route handlers under `src/app/api`. Test with `curl` against the running server.
+- **UI** — pages and components a person sees or operates. Test with Playwright. Follow **UI Testing**.
+
+## API (`curl`)
+
+- Start the app if not running (`npm run dev`, or `npm run build` then `npm run start`) and call the real route. Importing the handler or passing a Vitest test is not the e2e check.
+- Send the method, path, headers, and body the route expects. Assert the status code and the response body.
+- Cover the success path and the failure cases the change owns (invalid input, missing record, auth, conflict). If those cases are unclear, ask before inventing them.
+- Keep the exact `curl` command and the status and body you observed. The route is unverified until that command has been run.
+- Do not change the route's request or response shape so the command succeeds. Ask first (see Assumptions).
+- Keep secrets out of commands left in the transcript. Read them from the environment.
+
 # UI Testing
-No instructions yet
+
+Use Playwright for layout, styling, routing, client state, forms, and rendered data.
+
+- Run the flow the way a person does: open the page, click, type, submit, and navigate. A screenshot of the first paint is not a test.
+- Check every page that reads or writes the same state, data, or components.
+- Check the empty, loading, and error states the change can reach, along with the main path.
+- When layout or styling changed, check a desktop viewport and a mobile viewport.
+- Check CSS breakage wherever text, images, or layout can grow. Text stays inside its box and does not cross a border, overlap a neighbor, or spill out of the page. Put a long unbroken string (a URL, email, id, or SKU) and a long wrapping sentence into every text container the change renders, then look at the result in Playwright:
+  - A long word or URL wraps or truncates inside the box. It does not paint across the border or force the page wider than the viewport.
+  - Wrapped lines stay inside the padding. They do not collide with the border, the next row, or an icon or button beside them.
+  - `overflow` does not clip a value the person still needs to read. If the design truncates, the full value is still reachable (title, expand, or the detail view that already exists).
+  - Flex and grid children shrink. A long label does not blow out a row, a button, an input, or a table cell.
+  - Images and icons stay inside their frame. They do not stretch the card or cover the text.
+  - Narrow viewports wrap or scroll inside the component. The page itself does not gain a horizontal scrollbar.
+  - Sticky or fixed bars, menus, and dialogs do not cover the content, the focus ring, or each other.
+- If a check fails, fix it and run the flow again.
+- If Playwright is not available, say what you could not run. Do not report the UI as verified.
 
 # Assumptions
-No instructions yet
-
+Never guess. If the prompt is ambiguous or open ended i.e make the screen size bigger or smaller or what are the failure cases on an api, stop and ask.
+- Ask before changing an api shape in `src/app/api` or db schema in `src/lib/db/schemas`
+- Do not invent product decisions, copy, or acceptance criteria. ask and clarify
+- Do not widen what was asked. Keep things in scope. Note the adjacent thing you spotted; don't just fix it if unprompted
+- If you had to assume something you couldn't resolve, list it explicitly at the top of your summary.
+- Ask when the request could mean two different things. 
 # The Loop
 For every change made, run the following commands to ensure the code conforms to formatting and linting practices and to ensure the project build
 ```bash
