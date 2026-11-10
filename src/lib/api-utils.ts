@@ -4,13 +4,17 @@ import { type output, prettifyError, type ZodType } from "zod";
 
 function getHttpStatus(request: NextRequest): number {
   const methodMap: Record<string, number> = {
-    "GET": 200,
-    "POST": 201,
-    "PUT": 200,
-    "PATCH": 200,
-    "DELETE": 204
-  }
-  return methodMap[request.method] ?? 200
+    GET: 200,
+    POST: 201,
+    PUT: 200,
+    PATCH: 200,
+    DELETE: 204,
+  };
+  return methodMap[request.method] ?? 200;
+}
+
+export async function getRequestBody<T>(request: NextRequest): Promise<T> {
+  return await request.json();
 }
 
 /**
