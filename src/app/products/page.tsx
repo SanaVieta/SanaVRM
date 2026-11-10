@@ -9,6 +9,7 @@ import {
   Panel,
   Pill,
   Summary,
+  Truncate,
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
 import { Input } from "@/components/ui/input";
@@ -159,11 +160,13 @@ export default function ProductsPage() {
                           className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]"
                           key={product.id}
                         >
-                          <td className="max-w-[250px] break-words px-4 py-3 font-semibold text-[#124A0A]">
-                            {product.title || "Untitled variant"}
+                          <td className="max-w-[250px] px-4 py-3 font-semibold text-[#124A0A]">
+                            <Truncate>
+                              {product.title || "Untitled variant"}
+                            </Truncate>
                           </td>
-                          <td className="max-w-[200px] break-all px-4 py-3">
-                            {product.sku || "—"}
+                          <td className="max-w-[200px] px-4 py-3">
+                            <Truncate>{product.sku || "—"}</Truncate>
                           </td>
                           <td className="px-4 py-3">
                             {product.price == null

@@ -14,6 +14,7 @@ import {
   Panel,
   Pill,
   Summary,
+  Truncate,
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
 import { Button } from "@/components/ui/button";
@@ -137,9 +138,10 @@ export default function Home() {
                       key={lead.id}
                       className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]"
                     >
-                      <td className="px-4 py-3 font-semibold">
+                      <td className="max-w-[240px] px-4 py-3 font-semibold">
                         <Link
-                          className="text-[#124A0A] underline-offset-2 hover:underline"
+                          title={leadName(lead)}
+                          className="block truncate text-[#124A0A] underline-offset-2 hover:underline"
                           href={`/leads/${lead.id}`}
                         >
                           {leadName(lead)}
@@ -148,11 +150,15 @@ export default function Home() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {lead.phone || "—"}
                       </td>
-                      <td className="max-w-[280px] break-all px-4 py-3">
-                        {lead.email || "—"}
+                      <td className="max-w-[260px] px-4 py-3">
+                        <Truncate>{lead.email || "—"}</Truncate>
                       </td>
-                      <td className="px-4 py-3">{lead.city || "—"}</td>
-                      <td className="px-4 py-3">{lead.state || "—"}</td>
+                      <td className="max-w-[160px] px-4 py-3">
+                        <Truncate>{lead.city || "—"}</Truncate>
+                      </td>
+                      <td className="max-w-[100px] px-4 py-3">
+                        <Truncate>{lead.state || "—"}</Truncate>
+                      </td>
                       <td className="px-4 py-3">
                         <Pill
                           tone={

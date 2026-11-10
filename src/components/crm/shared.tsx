@@ -3,6 +3,20 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
+export function Truncate({
+  children,
+  className = "",
+}: {
+  children: string;
+  className?: string;
+}) {
+  return (
+    <span title={children} className={`block truncate ${className}`}>
+      {children}
+    </span>
+  );
+}
+
 export function PageHeader({
   title,
   description,
@@ -15,7 +29,10 @@ export function PageHeader({
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[38px] leading-tight font-bold text-[#124A0A]">
+        <h1
+          title={title}
+          className="truncate text-[38px] leading-tight font-bold text-[#124A0A]"
+        >
           {title}
         </h1>
         <p className="mt-1 text-[15px] text-[#4F5E4B]">{description}</p>

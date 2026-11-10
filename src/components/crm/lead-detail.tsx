@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { DataState, PageHeader, Panel, Pill } from "@/components/crm/shared";
+import {
+  DataState,
+  PageHeader,
+  Panel,
+  Pill,
+  Truncate,
+} from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +31,30 @@ import {
 } from "@/lib/crm-types";
 
 const statuses = ["new", "contacted", "qualified", "converted", "lost"];
+
+function NoteItem({ note }: { note: NoteRecord }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <li className="min-w-0 rounded-lg bg-[#F5F7F1] p-3">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        title={expanded ? "Show less" : "Show full note"}
+        onClick={() => setExpanded((value) => !value)}
+        className="block w-full cursor-pointer text-left"
+      >
+        <span
+          className={`break-words whitespace-pre-wrap ${expanded ? "block" : "line-clamp-3"}`}
+        >
+          {note.body}
+        </span>
+      </button>
+      <time className="text-xs text-[#4F5E4B]" dateTime={note.createdAt}>
+        {formatDate(note.createdAt)}
+      </time>
+    </li>
+  );
+}
 
 export function LeadDetail({ id }: { id: string }) {
   const [lead, setLead] = useState<LeadRecord | null>(null);
@@ -144,7 +174,7 @@ export function LeadDetail({ id }: { id: string }) {
               </Button>
             }
           />
-          <div className="grid items-start gap-5 xl:grid-cols-[1fr_1fr]">
+          <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
             <Panel label="Lead details">
               <h2 className="border-b border-[#DFE6D6] px-5 py-4 text-lg font-bold text-[#124A0A]">
                 Lead details
@@ -162,7 +192,9 @@ export function LeadDetail({ id }: { id: string }) {
                     <dt className="text-xs font-semibold tracking-wide text-[#4F5E4B] uppercase">
                       {label}
                     </dt>
-                    <dd className="mt-1 break-words">{value}</dd>
+                    <dd className="mt-1 min-w-0">
+                      <Truncate>{value}</Truncate>
+                    </dd>
                   </div>
                 ))}
                 <div>
@@ -177,7 +209,7 @@ export function LeadDetail({ id }: { id: string }) {
                 </div>
               </dl>
             </Panel>
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
               <Panel label="Shopify customer">
                 <h2 className="border-b border-[#DFE6D6] px-5 py-4 text-lg font-bold text-[#124A0A]">
                   Shopify customer
@@ -244,20 +276,7 @@ export function LeadDetail({ id }: { id: string }) {
                 <div className="space-y-4 p-5">
                   <ul className="space-y-3">
                     {notes.map((note) => (
-                      <li
-                        key={note.id}
-                        className="min-w-0 rounded-lg bg-[#F5F7F1] p-3"
-                      >
-                        <p className="wrap-break-word whitespace-pre-wrap">
-                          {note.body}
-                        </p>
-                        <time
-                          className="text-xs text-[#4F5E4B]"
-                          dateTime={note.createdAt}
-                        >
-                          {formatDate(note.createdAt)}
-                        </time>
-                      </li>
+                      <NoteItem key={note.id} note={note} />
                     ))}
                   </ul>
                   {!notes.length && (

@@ -9,6 +9,7 @@ import {
   Panel,
   Pill,
   Summary,
+  Truncate,
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
 import { Input } from "@/components/ui/input";
@@ -131,12 +132,17 @@ export default function OrdersPage() {
                         <td className="px-5 py-3 font-semibold text-[#124A0A]">
                           #{order.shopifyOrderId}
                         </td>
-                        <td className="px-5 py-3">
-                          {[order.customer?.firstName, order.customer?.lastName]
-                            .filter(Boolean)
-                            .join(" ") ||
-                            order.customer?.email ||
-                            "—"}
+                        <td className="max-w-[260px] px-5 py-3">
+                          <Truncate>
+                            {[
+                              order.customer?.firstName,
+                              order.customer?.lastName,
+                            ]
+                              .filter(Boolean)
+                              .join(" ") ||
+                              order.customer?.email ||
+                              "—"}
+                          </Truncate>
                         </td>
                         <td className="px-5 py-3 whitespace-nowrap">
                           {formatDate(order.createdAt)}
