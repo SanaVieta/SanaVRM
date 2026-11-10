@@ -1,25 +1,34 @@
 import { describe, expect, it } from "vitest";
 import {
+  createCustomerSchema,
   customerSchema,
   updateCustomerSchema,
 } from "@/lib/validation/customer.validation";
 import {
+  createInventoryLevelSchema,
   inventoryLevelSchema,
   updateInventoryLevelSchema,
 } from "@/lib/validation/inventory-level.validation";
-import { leadSchema, updateLeadSchema } from "@/lib/validation/lead.validation";
+import {
+  createLeadSchema,
+  leadSchema,
+  updateLeadSchema,
+} from "@/lib/validation/lead.validation";
 import { noteSchema } from "@/lib/validation/note.validation";
 import {
+  createOrderSchema,
   orderSchema,
   updateOrderSchema,
 } from "@/lib/validation/order.validation";
 import { orderItemSchema } from "@/lib/validation/order-item.validation";
 import {
+  createOutboxSchema,
   outboxSchema,
   updateOutboxSchema,
 } from "@/lib/validation/outbox.validation";
 import { idParamSchema } from "@/lib/validation/param.validation";
 import {
+  createProductSchema,
   productSchema,
   updateProductSchema,
 } from "@/lib/validation/product.validation";
@@ -55,6 +64,29 @@ describe("customerSchema", () => {
         false,
       );
     }
+  });
+});
+
+describe("createCustomerSchema", () => {
+  it("requires shopifyCustomerId and rejects a non-numeric one", () => {
+    expect(createCustomerSchema.safeParse({}).success).toBe(false);
+    expect(
+      createCustomerSchema.safeParse({ shopifyCustomerId: "abc" }).success,
+    ).toBe(false);
+    expect(
+      createCustomerSchema.safeParse({ shopifyCustomerId: "123" }).success,
+    ).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createCustomerSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      shopifyCustomerId: "123",
+    });
+
+    expect(parsed).toEqual({ shopifyCustomerId: "123" });
   });
 });
 
@@ -119,6 +151,25 @@ describe("leadSchema", () => {
   });
 });
 
+describe("createLeadSchema", () => {
+  it("requires status and rejects an unknown one", () => {
+    expect(createLeadSchema.safeParse({}).success).toBe(false);
+    expect(createLeadSchema.safeParse({ status: "won" }).success).toBe(false);
+    expect(createLeadSchema.safeParse({ status: "new" }).success).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createLeadSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      status: "new",
+    });
+
+    expect(parsed).toEqual({ status: "new" });
+  });
+});
+
 describe("updateLeadSchema", () => {
   it("makes every field optional", () => {
     expect(updateLeadSchema.safeParse({}).success).toBe(true);
@@ -168,6 +219,30 @@ describe("orderSchema", () => {
   it("requires a customer", () => {
     const { customerId: _customerId, ...withoutCustomer } = order;
     expect(orderSchema.safeParse(withoutCustomer).success).toBe(false);
+  });
+});
+
+describe("createOrderSchema", () => {
+  it("requires shopifyOrderId and customerId", () => {
+    expect(createOrderSchema.safeParse({}).success).toBe(false);
+    expect(
+      createOrderSchema.safeParse({
+        shopifyOrderId: "1",
+        customerId: otherId,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createOrderSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      shopifyOrderId: "1",
+      customerId: otherId,
+    });
+
+    expect(parsed).toEqual({ shopifyOrderId: "1", customerId: otherId });
   });
 });
 
@@ -250,6 +325,33 @@ describe("productSchema", () => {
   });
 });
 
+describe("createProductSchema", () => {
+  it("requires shopifyProductId and shopifyVariantId", () => {
+    expect(createProductSchema.safeParse({}).success).toBe(false);
+    expect(
+      createProductSchema.safeParse({
+        shopifyProductId: "1",
+        shopifyVariantId: "2",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createProductSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      shopifyProductId: "1",
+      shopifyVariantId: "2",
+    });
+
+    expect(parsed).toEqual({
+      shopifyProductId: "1",
+      shopifyVariantId: "2",
+    });
+  });
+});
+
 describe("updateProductSchema", () => {
   it("makes every field optional and strips database-managed ones", () => {
     expect(updateProductSchema.safeParse({}).success).toBe(true);
@@ -306,6 +408,33 @@ describe("inventoryLevelSchema", () => {
       inventoryLevelSchema.safeParse({ ...level, lowStockThreshold: -1 })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("createInventoryLevelSchema", () => {
+  const level = {
+    productId: otherId,
+    shopifyInventoryItemId: "1",
+    shopifyLocationId: "2",
+    available: 5,
+    onHand: 6,
+    committed: 1,
+  };
+
+  it("requires the quantity columns", () => {
+    expect(createInventoryLevelSchema.safeParse({}).success).toBe(false);
+    expect(createInventoryLevelSchema.safeParse(level).success).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createInventoryLevelSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      ...level,
+    });
+
+    expect(parsed).toEqual(level);
   });
 });
 
@@ -389,6 +518,38 @@ describe("outboxSchema", () => {
     ]) {
       expect(outboxSchema.safeParse({ ...row, ...bad }).success).toBe(false);
     }
+  });
+});
+
+describe("createOutboxSchema", () => {
+  const row = {
+    entity: "leads",
+    entityId: otherId,
+    operation: "create",
+    status: "pending",
+    attempts: 0,
+    idempotencyKey: "lead-1-create",
+  };
+
+  it("requires the full row shape minus id and createdAt", () => {
+    expect(createOutboxSchema.safeParse({}).success).toBe(false);
+    expect(createOutboxSchema.safeParse(row).success).toBe(true);
+  });
+
+  it("rejects an unknown entity", () => {
+    expect(
+      createOutboxSchema.safeParse({ ...row, entity: "notes" }).success,
+    ).toBe(false);
+  });
+
+  it("strips the database-managed id and createdAt", () => {
+    const parsed = createOutboxSchema.parse({
+      id,
+      createdAt: now,
+      ...row,
+    });
+
+    expect(parsed).toEqual(row);
   });
 });
 

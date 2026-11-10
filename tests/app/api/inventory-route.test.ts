@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GET } from "@/app/api/inventory/route";
+import { GET, POST } from "@/app/api/inventory/route";
 
 const repo = vi.hoisted(() => ({
   findAndCount: vi.fn(),
+  create: vi.fn(),
+  save: vi.fn(),
 }));
 
 vi.mock("@/lib/db/getDB", () => ({
@@ -14,6 +16,14 @@ vi.mock("@/lib/db/getDB", () => ({
 
 function listRequest(query = "") {
   return new NextRequest(`http://localhost/api/inventory${query}`);
+}
+
+function postRequest(body: string) {
+  return new NextRequest("http://localhost/api/inventory", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 describe("GET /api/inventory", () => {
@@ -48,5 +58,56 @@ describe("GET /api/inventory", () => {
 
     expect(response.status).toBe(400);
     expect(repo.findAndCount).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/inventory", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repo.create.mockImplementation((input) => input);
+    repo.save.mockImplementation(async (entity) => ({
+      id: "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b",
+      ...entity,
+    }));
+  });
+
+  it("creates an inventory level from the JSON body", async () => {
+    const response = await POST(
+      postRequest(
+        JSON.stringify({
+          productId: "7a1c9e2d-5b3f-4a8c-9d0e-2f3a4b5c6d7e",
+          shopifyInventoryItemId: "1",
+          shopifyLocationId: "2",
+          available: 5,
+          onHand: 5,
+          committed: 0,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ available: 5 });
+  });
+
+  it("returns 400 when a required quantity is missing", async () => {
+    const response = await POST(
+      postRequest(
+        JSON.stringify({
+          productId: "7a1c9e2d-5b3f-4a8c-9d0e-2f3a4b5c6d7e",
+          shopifyInventoryItemId: "1",
+          shopifyLocationId: "2",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when the body is not JSON", async () => {
+    const response = await POST(postRequest("{"));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid JSON body" });
   });
 });

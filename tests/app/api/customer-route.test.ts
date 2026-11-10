@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GET } from "@/app/api/customer/route";
+import { GET, POST } from "@/app/api/customer/route";
 
 const repo = vi.hoisted(() => ({
   findAndCount: vi.fn(),
+  create: vi.fn(),
+  save: vi.fn(),
 }));
 
 vi.mock("@/lib/db/getDB", () => ({
@@ -14,6 +16,14 @@ vi.mock("@/lib/db/getDB", () => ({
 
 function listRequest(query = "") {
   return new NextRequest(`http://localhost/api/customer${query}`);
+}
+
+function postRequest(body: string) {
+  return new NextRequest("http://localhost/api/customer", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 describe("GET /api/customer", () => {
@@ -48,5 +58,41 @@ describe("GET /api/customer", () => {
 
     expect(response.status).toBe(400);
     expect(repo.findAndCount).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/customer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repo.create.mockImplementation((input) => input);
+    repo.save.mockImplementation(async (entity) => ({
+      id: "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b",
+      ...entity,
+    }));
+  });
+
+  it("creates a customer from the JSON body", async () => {
+    const response = await POST(
+      postRequest(JSON.stringify({ shopifyCustomerId: "123" })),
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ shopifyCustomerId: "123" });
+  });
+
+  it("returns 400 when the shopify id is not numeric", async () => {
+    const response = await POST(
+      postRequest(JSON.stringify({ shopifyCustomerId: "abc" })),
+    );
+
+    expect(response.status).toBe(400);
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when the body is not JSON", async () => {
+    const response = await POST(postRequest("{"));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid JSON body" });
   });
 });
