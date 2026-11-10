@@ -20,7 +20,7 @@ export type PaginationParams = {
   createdAt?: CreatedAtSort;
 };
 
-type CreatedAtSortable = ObjectLiteral & { createdAt: Date };
+type CreatedAtSortable = ObjectLiteral & { id: string; createdAt: Date };
 
 export type PaginatedResult<T> = {
   data: T[];
@@ -48,7 +48,8 @@ export async function findPaginated<T extends CreatedAtSortable>(
   const createdAt = pagination?.createdAt ?? DEFAULT_CREATED_AT_SORT;
   const findOptions = {
     ...options,
-    order: { createdAt },
+    // `id` breaks createdAt ties so pages never repeat or skip rows.
+    order: { createdAt, id: createdAt },
     skip: offset,
     take: limit,
   } as FindManyOptions<T>;
