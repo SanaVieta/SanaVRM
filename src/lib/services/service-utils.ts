@@ -8,6 +8,8 @@ import type {
 } from "typeorm";
 import { getDb } from "@/lib/db/getDB";
 import {
+  type CreatedAtSort,
+  DEFAULT_CREATED_AT_SORT,
   DEFAULT_PAGE_LIMIT,
   MAX_PAGE_LIMIT,
 } from "@/lib/validation/pagination.validation";
@@ -15,7 +17,10 @@ import {
 export type PaginationParams = {
   limit?: number;
   offset?: number;
+  createdAt?: CreatedAtSort;
 };
+
+type CreatedAtSortable = ObjectLiteral & { createdAt: Date };
 
 export type PaginatedResult<T> = {
   data: T[];
@@ -34,17 +39,20 @@ export function normalizePagination(params?: PaginationParams): {
   return { limit, offset };
 }
 
-export async function findPaginated<T extends ObjectLiteral>(
+export async function findPaginated<T extends CreatedAtSortable>(
   repo: Repository<T>,
   pagination?: PaginationParams,
-  options?: Omit<FindManyOptions<T>, "skip" | "take">,
+  options?: Omit<FindManyOptions<T>, "skip" | "take" | "order">,
 ): Promise<PaginatedResult<T>> {
   const { limit, offset } = normalizePagination(pagination);
-  const [data, total] = await repo.findAndCount({
+  const createdAt = pagination?.createdAt ?? DEFAULT_CREATED_AT_SORT;
+  const findOptions = {
     ...options,
+    order: { createdAt },
     skip: offset,
     take: limit,
-  });
+  } as FindManyOptions<T>;
+  const [data, total] = await repo.findAndCount(findOptions);
   return { data, total, limit, offset };
 }
 
