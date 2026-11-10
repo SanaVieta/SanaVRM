@@ -22,7 +22,9 @@ export async function listProducts(
   pagination?: PaginationParams,
 ): Promise<PaginatedResult<Product>> {
   const repo = await getEntityRepository(ProductEntity);
-  return findPaginated(repo, pagination);
+  return findPaginated(repo, pagination, {
+    relations: { inventoryLevels: true },
+  });
 }
 
 export async function getProductById(id: string): Promise<Product> {

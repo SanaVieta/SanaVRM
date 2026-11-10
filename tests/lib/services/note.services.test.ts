@@ -31,10 +31,23 @@ describe("note services", () => {
     await expect(createNote({ body: "hello" })).rejects.toMatchObject({
       statusCode: 400,
       message:
-        "A note must attach to exactly one of customer, order, or inventory",
+        "A note must attach to exactly one lead, customer, order, or inventory record",
     });
     await expect(
       createNote({ body: "hello", customerId, orderId: customerId }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("accepts a lead-owned note and rejects multiple targets", async () => {
+    const leadId = "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b";
+    await expect(
+      createNote({ body: "Follow up", leadId }),
+    ).resolves.toMatchObject({
+      body: "Follow up",
+      leadId,
+    });
+    await expect(
+      createNote({ body: "Invalid", leadId, customerId: leadId }),
     ).rejects.toMatchObject({ statusCode: 400 });
   });
 

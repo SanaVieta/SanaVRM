@@ -22,7 +22,7 @@ export async function listOrders(
   pagination?: PaginationParams,
 ): Promise<PaginatedResult<Order>> {
   const repo = await getEntityRepository(OrderEntity);
-  return findPaginated(repo, pagination);
+  return findPaginated(repo, pagination, { relations: { customer: true } });
 }
 
 export async function getOrderById(id: string): Promise<Order> {

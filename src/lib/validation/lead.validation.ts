@@ -45,4 +45,23 @@ export const patchLeadSchema = z.object({
   params: idParamSchema,
 });
 
+export const createLeadSchema = z.object({
+  email: z.email().nullish(),
+  firstName: z.string().trim().min(1).nullish(),
+  lastName: z.string().trim().min(1).nullish(),
+  phone: z.string().trim().nullish(),
+  city: z.string().trim().nullish(),
+  state: z.string().trim().nullish(),
+  status: z.enum(LEAD_STATUSES).default("new"),
+  source: z.string().default("manual"),
+});
+
+export const importLeadSchema = z.object({
+  duplicate: z.enum(["skip", "update"]),
+  rows: z
+    .array(createLeadSchema.extend({ createdAt: z.iso.datetime().optional() }))
+    .min(1)
+    .max(1000),
+});
+
 export type LeadInput = z.infer<typeof leadSchema>;

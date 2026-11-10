@@ -14,17 +14,19 @@ const resourceName = "Note";
 
 export type CreateNoteInput = Omit<
   Note,
-  "id" | "createdAt" | "customer" | "order" | "inventoryLevel"
+  "id" | "createdAt" | "customer" | "order" | "inventoryLevel" | "lead"
 >;
 
 export type UpdateNoteInput = Partial<CreateNoteInput>;
 
 function assertNoteTarget(input: {
+  leadId?: string | null;
   customerId?: string | null;
   orderId?: string | null;
   inventoryId?: string | null;
 }): void {
   const targetCount = [
+    input.leadId,
     input.customerId,
     input.orderId,
     input.inventoryId,
@@ -33,7 +35,7 @@ function assertNoteTarget(input: {
   if (targetCount !== 1) {
     throw new ApiError(
       400,
-      "A note must attach to exactly one of customer, order, or inventory",
+      "A note must attach to exactly one lead, customer, order, or inventory record",
     );
   }
 }
@@ -71,6 +73,7 @@ export async function updateNote(
   const merged = { ...existing, ...input };
   assertNoteTarget({
     customerId: merged.customerId,
+    leadId: merged.leadId,
     orderId: merged.orderId,
     inventoryId: merged.inventoryId,
   });

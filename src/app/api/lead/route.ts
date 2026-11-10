@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
-import { handleRequest } from "@/lib/api-utils";
-import { listLeads } from "@/lib/services/lead.services";
+import { getRequestBody, handleRequest } from "@/lib/api-utils";
+import { createLead, listLeads } from "@/lib/services/lead.services";
+import { createLeadSchema } from "@/lib/validation/lead.validation";
 import { paginationQuerySchema } from "@/lib/validation/pagination.validation";
 
 export async function GET(req: NextRequest) {
@@ -17,4 +18,11 @@ export async function GET(req: NextRequest) {
     req,
     { schema: paginationQuerySchema, body },
   );
+}
+
+export async function POST(req: NextRequest) {
+  return handleRequest((body) => createLead(body), req, {
+    schema: createLeadSchema,
+    body: () => getRequestBody<unknown>(req),
+  });
 }
