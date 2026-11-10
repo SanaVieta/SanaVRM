@@ -3,19 +3,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import { type output, prettifyError, type ZodType } from "zod";
 
 function getHttpStatus(request: NextRequest): number {
-  switch (request.method) {
-    case "GET":
-      return 200;
-    case "POST":
-      return 201;
-    case "PUT":
-    case "PATCH":
-      return 200;
-    case "DELETE":
-      return 204;
-    default:
-      return 200;
+  const methodMap: Record<string, number> = {
+    "GET": 200,
+    "POST": 201,
+    "PUT": 200,
+    "PATCH": 200,
+    "DELETE": 204
   }
+  return methodMap[request.method] ?? 200
 }
 
 /**
