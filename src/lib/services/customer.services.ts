@@ -7,6 +7,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Customer";
@@ -36,7 +37,7 @@ export async function createCustomer(
 ): Promise<Customer> {
   const repo = await getEntityRepository(CustomerEntity);
   const customer = repo.create(input);
-  return repo.save(customer);
+  return saveEntity(repo, customer, resourceName);
 }
 
 export async function updateCustomer(
@@ -49,7 +50,7 @@ export async function updateCustomer(
     resourceName,
   );
   repo.merge(existing, input);
-  return repo.save(existing);
+  return saveEntity(repo, existing, resourceName);
 }
 
 export async function deleteCustomer(id: string): Promise<void> {

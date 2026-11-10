@@ -1,10 +1,11 @@
 import { ApiError } from "next/dist/server/api-utils";
-import type {
-  EntityManager,
-  EntityTarget,
-  FindManyOptions,
-  ObjectLiteral,
-  Repository,
+import {
+  type EntityManager,
+  type EntityTarget,
+  type FindManyOptions,
+  type ObjectLiteral,
+  QueryFailedError,
+  type Repository,
 } from "typeorm";
 import { getDb } from "@/lib/db/getDB";
 import {
@@ -20,7 +21,7 @@ export type PaginationParams = {
   createdAt?: CreatedAtSort;
 };
 
-type CreatedAtSortable = ObjectLiteral & { createdAt: Date };
+type CreatedAtSortable = ObjectLiteral & { id: string; createdAt: Date };
 
 export type PaginatedResult<T> = {
   data: T[];
@@ -48,7 +49,8 @@ export async function findPaginated<T extends CreatedAtSortable>(
   const createdAt = pagination?.createdAt ?? DEFAULT_CREATED_AT_SORT;
   const findOptions = {
     ...options,
-    order: { createdAt },
+    // `id` breaks createdAt ties so pages never repeat or skip rows.
+    order: { createdAt, id: createdAt },
     skip: offset,
     take: limit,
   } as FindManyOptions<T>;
@@ -84,13 +86,65 @@ type DeleteCapable = {
   delete: (id: string) => Promise<{ affected?: number | null }>;
 };
 
+const UNIQUE_VIOLATION = "23505";
+const FOREIGN_KEY_VIOLATION = "23503";
+
+// Postgres puts the offending column in `detail` as "Key (column)=(value) ...".
+// Only the column is used, so the message never echoes the value.
+export function rethrowQueryError(
+  error: unknown,
+  resourceName: string,
+  uniqueMessages?: Record<string, string>,
+): never {
+  if (!(error instanceof QueryFailedError)) throw error;
+  const { code, detail } = error.driverError as {
+    code?: string;
+    detail?: string;
+  };
+  if (code === UNIQUE_VIOLATION) {
+    const column = detail?.match(/^Key \(([^)]+)\)/)?.[1] ?? "";
+    throw new ApiError(
+      409,
+      uniqueMessages?.[column] ?? `${resourceName} already exists`,
+    );
+  }
+  if (code === FOREIGN_KEY_VIOLATION) {
+    const stillReferenced = detail?.includes("still referenced") ?? false;
+    throw new ApiError(
+      stillReferenced ? 409 : 400,
+      stillReferenced
+        ? `${resourceName} is still referenced`
+        : "Referenced record does not exist",
+    );
+  }
+  throw error;
+}
+
+export async function saveEntity<T extends ObjectLiteral>(
+  repo: Repository<T>,
+  entity: T,
+  resourceName: string,
+  uniqueMessages?: Record<string, string>,
+): Promise<T> {
+  try {
+    return await repo.save(entity);
+  } catch (error) {
+    rethrowQueryError(error, resourceName, uniqueMessages);
+  }
+}
+
 export async function deleteByIdOrThrow(
   repo: DeleteCapable,
   id: string,
   resourceName: string,
 ): Promise<void> {
-  const result = await repo.delete(id);
-  if (!result.affected) {
-    throw new ApiError(404, `${resourceName} not found`);
+  try {
+    const result = await repo.delete(id);
+    if (!result.affected) {
+      throw new ApiError(404, `${resourceName} not found`);
+    }
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    rethrowQueryError(error, resourceName);
   }
 }

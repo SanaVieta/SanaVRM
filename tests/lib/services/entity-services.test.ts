@@ -1,4 +1,5 @@
 import { ApiError } from "next/dist/server/api-utils";
+import { QueryFailedError } from "typeorm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createCustomer,
@@ -49,7 +50,7 @@ describe("customer services", () => {
       offset: 0,
     });
     expect(repo.findAndCount).toHaveBeenCalledWith({
-      order: { createdAt: "DESC" },
+      order: { createdAt: "DESC", id: "DESC" },
       skip: 0,
       take: 10,
     });
@@ -92,6 +93,35 @@ describe("customer services", () => {
       tags: ["vip"],
     });
     expect(repo.merge).toHaveBeenCalledWith(existing, { tags: ["vip"] });
+  });
+
+  it.each([
+    [
+      "23505",
+      "Key (shopify_customer_id)=(1) already exists.",
+      409,
+      "Customer already exists",
+    ],
+    [
+      "23503",
+      'Key (id)=(1) is not present in table "customers".',
+      400,
+      "Referenced record does not exist",
+    ],
+  ])("maps Postgres %s on update", async (code, detail, statusCode, message) => {
+    repo.findOne.mockResolvedValue({ id, shopifyCustomerId: "1" });
+    repo.save.mockRejectedValue(
+      new QueryFailedError(
+        "UPDATE customers",
+        [],
+        Object.assign(new Error("constraint"), { code, detail }),
+      ),
+    );
+
+    await expect(updateCustomer(id, { tags: ["vip"] })).rejects.toMatchObject({
+      statusCode,
+      message,
+    });
   });
 
   it("throws 404 when updating a missing customer", async () => {

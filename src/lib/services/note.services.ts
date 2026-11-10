@@ -8,6 +8,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Note";
@@ -55,7 +56,7 @@ export async function createNote(input: CreateNoteInput): Promise<Note> {
   assertNoteTarget(input);
   const repo = await getEntityRepository(NoteEntity);
   const note = repo.create(input);
-  return repo.save(note);
+  return saveEntity(repo, note, resourceName);
 }
 
 export async function updateNote(
@@ -76,7 +77,7 @@ export async function updateNote(
   });
 
   repo.merge(existing, input);
-  return repo.save(existing);
+  return saveEntity(repo, existing, resourceName);
 }
 
 export async function deleteNote(id: string): Promise<void> {

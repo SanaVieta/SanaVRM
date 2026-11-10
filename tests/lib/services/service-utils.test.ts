@@ -1,5 +1,5 @@
 import { ApiError } from "next/dist/server/api-utils";
-import type { EntityManager, Repository } from "typeorm";
+import { type EntityManager, QueryFailedError, type Repository } from "typeorm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deleteByIdOrThrow,
@@ -93,7 +93,7 @@ describe("findPaginated", () => {
     });
 
     expect(repo.findAndCount).toHaveBeenCalledWith({
-      order: { createdAt: "DESC" },
+      order: { createdAt: "DESC", id: "DESC" },
       skip: 5,
       take: 2,
     });
@@ -110,8 +110,25 @@ describe("findPaginated", () => {
     );
 
     expect(repo.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({ order: { createdAt: "ASC" } }),
+      expect.objectContaining({ order: { createdAt: "ASC", id: "ASC" } }),
     );
+  });
+
+  it("breaks createdAt ties by id in the same direction", async () => {
+    const repo = {
+      findAndCount: vi.fn(async () => [[], 0]),
+    };
+
+    await findPaginated(
+      repo as unknown as Repository<{ id: string; createdAt: Date }>,
+      { createdAt: "DESC" },
+    );
+
+    const [{ order }] = repo.findAndCount.mock.calls[0] as unknown as [
+      { order: Record<string, string> },
+    ];
+    expect(Object.keys(order)).toEqual(["createdAt", "id"]);
+    expect(order.id).toBe("DESC");
   });
 });
 
@@ -145,5 +162,27 @@ describe("deleteByIdOrThrow", () => {
     await expect(
       deleteByIdOrThrow(repo, "id", "Customer"),
     ).rejects.toMatchObject({ statusCode: 404, message: "Customer not found" });
+  });
+
+  it("maps a foreign key block on delete to 409", async () => {
+    const repo = {
+      delete: async () => {
+        throw new QueryFailedError(
+          "DELETE FROM customers",
+          [],
+          Object.assign(new Error("constraint"), {
+            code: "23503",
+            detail: 'Key (id)=(1) is still referenced from table "orders".',
+          }),
+        );
+      },
+    };
+
+    await expect(
+      deleteByIdOrThrow(repo, "id", "Customer"),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: "Customer is still referenced",
+    });
   });
 });

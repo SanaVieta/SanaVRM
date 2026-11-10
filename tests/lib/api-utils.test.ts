@@ -1,14 +1,64 @@
 import { ApiError } from "next/dist/server/api-utils";
+import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { handleRequest } from "@/lib/api-utils";
+import { getRequestBody, handleRequest } from "@/lib/api-utils";
 import { noteSchema } from "@/lib/validation/note.validation";
 
+function createRequest(method = "GET") {
+  return new NextRequest("http://localhost/api/test", { method });
+}
+
+function createJsonRequest(body: string) {
+  return new NextRequest("http://localhost/api/test", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+describe("getRequestBody", () => {
+  it("returns the JSON object from the request", async () => {
+    const request = createJsonRequest(
+      JSON.stringify({ notes: "called", score: 2 }),
+    );
+
+    await expect(getRequestBody(request)).resolves.toEqual({
+      notes: "called",
+      score: 2,
+    });
+  });
+
+  it("rejects invalid JSON with a 400 ApiError", async () => {
+    const request = createJsonRequest("{");
+
+    await expect(getRequestBody(request)).rejects.toMatchObject({
+      statusCode: 400,
+      message: "Invalid JSON body",
+    });
+  });
+});
+
 describe("handleRequest", () => {
+  it.each([
+    ["GET", 200],
+    ["POST", 201],
+    ["PUT", 200],
+    ["PATCH", 200],
+    ["DELETE", 204],
+  ])("uses the %s request method to choose status %i", async (method, status) => {
+    const response = await handleRequest(
+      () => ({ ok: true }),
+      createRequest(method),
+    );
+
+    expect(response.status).toBe(status);
+  });
+
   it("returns a synchronous callback result as JSON", async () => {
     const callback = vi.fn(() => ({ items: ["one", "two"] }));
 
-    const response = await handleRequest(callback);
+    const response = await handleRequest(callback, createRequest());
 
     expect(callback).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
@@ -16,7 +66,10 @@ describe("handleRequest", () => {
   });
 
   it("awaits an asynchronous callback before returning JSON", async () => {
-    const response = await handleRequest(async () => [{ id: 1 }]);
+    const response = await handleRequest(
+      async () => [{ id: 1 }],
+      createRequest(),
+    );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual([{ id: 1 }]);
@@ -27,7 +80,7 @@ describe("handleRequest", () => {
   ])("returns the status and message of an ApiError (%i)", async (statusCode) => {
     const response = await handleRequest(async () => {
       throw new ApiError(statusCode, "Expected failure");
-    });
+    }, createRequest());
 
     expect(response.status).toBe(statusCode);
     expect(await response.json()).toEqual({ error: "Expected failure" });
@@ -40,7 +93,7 @@ describe("handleRequest", () => {
     try {
       const response = await handleRequest(async () => {
         throw error;
-      });
+      }, createRequest());
 
       expect(logError).toHaveBeenCalledWith("Request failed", error);
       expect(response.status).toBe(500);
@@ -53,7 +106,7 @@ describe("handleRequest", () => {
   it("passes the parsed body to the callback", async () => {
     const callback = vi.fn((body: { n: number }) => ({ doubled: body.n * 2 }));
 
-    const response = await handleRequest(callback, {
+    const response = await handleRequest(callback, createRequest(), {
       schema: z.object({ n: z.coerce.number() }),
       body: { n: "4" },
     });
@@ -68,7 +121,7 @@ describe("handleRequest", () => {
     const callback = vi.fn();
 
     try {
-      const response = await handleRequest(callback, {
+      const response = await handleRequest(callback, createRequest(), {
         schema: noteSchema,
         body: { body: "", customerId: "nope" },
       });
@@ -86,6 +139,35 @@ describe("handleRequest", () => {
     }
   });
 
+  it("reads a lazy body inside error handling and returns 400 when it fails", async () => {
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const callback = vi.fn();
+
+    try {
+      const response = await handleRequest(callback, createJsonRequest("{"), {
+        schema: z.object({ n: z.number() }),
+        body: () => getRequestBody(createJsonRequest("{")),
+      });
+
+      expect(callback).not.toHaveBeenCalled();
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "Invalid JSON body" });
+    } finally {
+      logError.mockRestore();
+    }
+  });
+
+  it("validates a lazy body that resolves", async () => {
+    const response = await handleRequest(
+      (body: { n: number }) => body,
+      createRequest(),
+      { schema: z.object({ n: z.number() }), body: async () => ({ n: 3 }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ n: 3 });
+  });
+
   it("validates with an async schema", async () => {
     const logError = vi.spyOn(console, "error").mockImplementation(() => {});
     const schema = z.object({
@@ -93,11 +175,11 @@ describe("handleRequest", () => {
     });
 
     try {
-      const ok = await handleRequest(() => "fine", {
+      const ok = await handleRequest(() => "fine", createRequest(), {
         schema,
         body: { name: "free" },
       });
-      const taken = await handleRequest(() => "fine", {
+      const taken = await handleRequest(() => "fine", createRequest(), {
         schema,
         body: { name: "taken" },
       });
@@ -113,8 +195,9 @@ describe("handleRequest", () => {
     const logError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      const response = await handleRequest(async () =>
-        noteSchema.parse({ id: "x" }),
+      const response = await handleRequest(
+        async () => noteSchema.parse({ id: "x" }),
+        createRequest(),
       );
 
       expect(response.status).toBe(500);

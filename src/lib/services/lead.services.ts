@@ -1,4 +1,5 @@
 import { ApiError } from "next/dist/server/api-utils";
+import type { Repository } from "typeorm";
 import type { Lead } from "@/lib/db/schemas/lead.schema";
 import { Lead as LeadEntity } from "@/lib/db/schemas/lead.schema";
 import {
@@ -8,6 +9,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Lead";
@@ -18,6 +20,15 @@ export type CreateLeadInput = Omit<
 >;
 
 export type UpdateLeadInput = Partial<CreateLeadInput>;
+
+const uniqueViolationMessages: Record<string, string> = {
+  customer_id: "Customer is already linked to another lead",
+  email: "A lead with this email already exists",
+};
+
+function saveLead(repo: Repository<Lead>, entity: Lead): Promise<Lead> {
+  return saveEntity(repo, entity, resourceName, uniqueViolationMessages);
+}
 
 function assertLeadLinkFields(input: {
   customerId?: string | null;
@@ -48,7 +59,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
   assertLeadLinkFields(input);
   const repo = await getEntityRepository(LeadEntity);
   const lead = repo.create(input);
-  return repo.save(lead);
+  return saveLead(repo, lead);
 }
 
 export async function updateLead(
@@ -68,7 +79,7 @@ export async function updateLead(
   });
 
   repo.merge(existing, input);
-  return repo.save(existing);
+  return saveLead(repo, existing);
 }
 
 export async function deleteLead(id: string): Promise<void> {

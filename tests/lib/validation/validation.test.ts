@@ -1,12 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { customerSchema } from "@/lib/validation/customer.validation";
-import { inventoryLevelSchema } from "@/lib/validation/inventory-level.validation";
-import { leadSchema } from "@/lib/validation/lead.validation";
+import {
+  createCustomerSchema,
+  customerSchema,
+  updateCustomerSchema,
+} from "@/lib/validation/customer.validation";
+import {
+  createInventoryLevelSchema,
+  inventoryLevelSchema,
+  updateInventoryLevelSchema,
+} from "@/lib/validation/inventory-level.validation";
+import {
+  createLeadSchema,
+  leadSchema,
+  updateLeadSchema,
+} from "@/lib/validation/lead.validation";
 import { noteSchema } from "@/lib/validation/note.validation";
-import { orderSchema } from "@/lib/validation/order.validation";
+import {
+  createOrderSchema,
+  orderSchema,
+  updateOrderSchema,
+} from "@/lib/validation/order.validation";
 import { orderItemSchema } from "@/lib/validation/order-item.validation";
-import { outboxSchema } from "@/lib/validation/outbox.validation";
-import { productSchema } from "@/lib/validation/product.validation";
+import {
+  createOutboxSchema,
+  outboxSchema,
+  updateOutboxSchema,
+} from "@/lib/validation/outbox.validation";
+import { idParamSchema } from "@/lib/validation/param.validation";
+import {
+  createProductSchema,
+  productSchema,
+  updateProductSchema,
+} from "@/lib/validation/product.validation";
 
 const id = "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b";
 const otherId = "7a1c9e2d-5b3f-4a8c-9d0e-2f3a4b5c6d7e";
@@ -39,6 +64,57 @@ describe("customerSchema", () => {
         false,
       );
     }
+  });
+});
+
+describe("createCustomerSchema", () => {
+  it("requires shopifyCustomerId and rejects a non-numeric one", () => {
+    expect(createCustomerSchema.safeParse({}).success).toBe(false);
+    expect(
+      createCustomerSchema.safeParse({ shopifyCustomerId: "abc" }).success,
+    ).toBe(false);
+    expect(
+      createCustomerSchema.safeParse({ shopifyCustomerId: "123" }).success,
+    ).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createCustomerSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      shopifyCustomerId: "123",
+    });
+
+    expect(parsed).toEqual({ shopifyCustomerId: "123" });
+  });
+});
+
+describe("updateCustomerSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateCustomerSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateCustomerSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        tags: ["vip"],
+      }),
+    ).toEqual({ tags: ["vip"] });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(
+      updateCustomerSchema.safeParse({ shopifyCustomerId: "abc" }).success,
+    ).toBe(false);
+  });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    const parsed = updateCustomerSchema.parse({
+      syncedAt: now.toISOString(),
+    });
+
+    expect(parsed.syncedAt).toEqual(now);
   });
 });
 
@@ -75,6 +151,57 @@ describe("leadSchema", () => {
   });
 });
 
+describe("createLeadSchema", () => {
+  it("requires status and rejects an unknown one", () => {
+    expect(createLeadSchema.safeParse({}).success).toBe(false);
+    expect(createLeadSchema.safeParse({ status: "won" }).success).toBe(false);
+    expect(createLeadSchema.safeParse({ status: "new" }).success).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createLeadSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      status: "new",
+    });
+
+    expect(parsed).toEqual({ status: "new" });
+  });
+});
+
+describe("updateLeadSchema", () => {
+  it("makes every field optional", () => {
+    expect(updateLeadSchema.safeParse({}).success).toBe(true);
+    expect(updateLeadSchema.safeParse({ status: "new" }).success).toBe(true);
+  });
+
+  it("strips the database-managed id, createdAt, and updatedAt", () => {
+    const parsed = updateLeadSchema.parse({
+      id: otherId,
+      createdAt: now,
+      updatedAt: now,
+      city: "Austin",
+    });
+
+    expect(parsed).toEqual({ city: "Austin" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateLeadSchema.safeParse({ status: "won" }).success).toBe(false);
+    expect(updateLeadSchema.safeParse({ email: "nope" }).success).toBe(false);
+  });
+
+  it("accepts linkedAt as a JSON date string", () => {
+    const parsed = updateLeadSchema.parse({
+      customerId: otherId,
+      linkedAt: now.toISOString(),
+    });
+
+    expect(parsed.linkedAt).toEqual(now);
+  });
+});
+
 describe("orderSchema", () => {
   const order = {
     id,
@@ -92,6 +219,56 @@ describe("orderSchema", () => {
   it("requires a customer", () => {
     const { customerId: _customerId, ...withoutCustomer } = order;
     expect(orderSchema.safeParse(withoutCustomer).success).toBe(false);
+  });
+});
+
+describe("createOrderSchema", () => {
+  it("requires shopifyOrderId and customerId", () => {
+    expect(createOrderSchema.safeParse({}).success).toBe(false);
+    expect(
+      createOrderSchema.safeParse({
+        shopifyOrderId: "1",
+        customerId: otherId,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createOrderSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      shopifyOrderId: "1",
+      customerId: otherId,
+    });
+
+    expect(parsed).toEqual({ shopifyOrderId: "1", customerId: otherId });
+  });
+});
+
+describe("updateOrderSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateOrderSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateOrderSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        financialStatus: "paid",
+      }),
+    ).toEqual({ financialStatus: "paid" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateOrderSchema.safeParse({ customerId: "123" }).success).toBe(
+      false,
+    );
+  });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    expect(
+      updateOrderSchema.parse({ syncedAt: now.toISOString() }).syncedAt,
+    ).toEqual(now);
   });
 });
 
@@ -148,6 +325,59 @@ describe("productSchema", () => {
   });
 });
 
+describe("createProductSchema", () => {
+  it("requires shopifyProductId and shopifyVariantId", () => {
+    expect(createProductSchema.safeParse({}).success).toBe(false);
+    expect(
+      createProductSchema.safeParse({
+        shopifyProductId: "1",
+        shopifyVariantId: "2",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createProductSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      shopifyProductId: "1",
+      shopifyVariantId: "2",
+    });
+
+    expect(parsed).toEqual({
+      shopifyProductId: "1",
+      shopifyVariantId: "2",
+    });
+  });
+});
+
+describe("updateProductSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateProductSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateProductSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        notes: "restock soon",
+      }),
+    ).toEqual({ notes: "restock soon" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateProductSchema.safeParse({ status: "deleted" }).success).toBe(
+      false,
+    );
+  });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    expect(
+      updateProductSchema.parse({ syncedAt: now.toISOString() }).syncedAt,
+    ).toEqual(now);
+  });
+});
+
 describe("inventoryLevelSchema", () => {
   const level = {
     id,
@@ -178,6 +408,60 @@ describe("inventoryLevelSchema", () => {
       inventoryLevelSchema.safeParse({ ...level, lowStockThreshold: -1 })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("createInventoryLevelSchema", () => {
+  const level = {
+    productId: otherId,
+    shopifyInventoryItemId: "1",
+    shopifyLocationId: "2",
+    available: 5,
+    onHand: 6,
+    committed: 1,
+  };
+
+  it("requires the quantity columns", () => {
+    expect(createInventoryLevelSchema.safeParse({}).success).toBe(false);
+    expect(createInventoryLevelSchema.safeParse(level).success).toBe(true);
+  });
+
+  it("strips the database-managed id and timestamps", () => {
+    const parsed = createInventoryLevelSchema.parse({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      ...level,
+    });
+
+    expect(parsed).toEqual(level);
+  });
+});
+
+describe("updateInventoryLevelSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateInventoryLevelSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateInventoryLevelSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        lowStockThreshold: 5,
+      }),
+    ).toEqual({ lowStockThreshold: 5 });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateInventoryLevelSchema.safeParse({ onHand: 1.5 }).success).toBe(
+      false,
+    );
+  });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    expect(
+      updateInventoryLevelSchema.parse({ syncedAt: now.toISOString() })
+        .syncedAt,
+    ).toEqual(now);
   });
 });
 
@@ -234,5 +518,68 @@ describe("outboxSchema", () => {
     ]) {
       expect(outboxSchema.safeParse({ ...row, ...bad }).success).toBe(false);
     }
+  });
+});
+
+describe("createOutboxSchema", () => {
+  const row = {
+    entity: "leads",
+    entityId: otherId,
+    operation: "create",
+    status: "pending",
+    attempts: 0,
+    idempotencyKey: "lead-1-create",
+  };
+
+  it("requires the full row shape minus id and createdAt", () => {
+    expect(createOutboxSchema.safeParse({}).success).toBe(false);
+    expect(createOutboxSchema.safeParse(row).success).toBe(true);
+  });
+
+  it("rejects an unknown entity", () => {
+    expect(
+      createOutboxSchema.safeParse({ ...row, entity: "notes" }).success,
+    ).toBe(false);
+  });
+
+  it("strips the database-managed id and createdAt", () => {
+    const parsed = createOutboxSchema.parse({
+      id,
+      createdAt: now,
+      ...row,
+    });
+
+    expect(parsed).toEqual(row);
+  });
+});
+
+describe("updateOutboxSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateOutboxSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateOutboxSchema.parse({
+        id: otherId,
+        createdAt: now,
+        status: "sent",
+      }),
+    ).toEqual({ status: "sent" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateOutboxSchema.safeParse({ status: "queued" }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("idParamSchema", () => {
+  it("accepts a uuid id", () => {
+    expect(idParamSchema.parse({ id })).toEqual({ id });
+  });
+
+  it("rejects a missing or non-uuid id", () => {
+    expect(idParamSchema.safeParse({}).success).toBe(false);
+    expect(idParamSchema.safeParse({ id: "123" }).success).toBe(false);
+    expect(idParamSchema.safeParse({ id: ["a", "b"] }).success).toBe(false);
   });
 });

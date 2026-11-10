@@ -4,6 +4,7 @@ import {
   shopifyIdSchema,
   uuidSchema,
 } from "@/lib/validation/common";
+import { idParamSchema } from "@/lib/validation/param.validation";
 
 export const orderSchema = z.object({
   id: uuidSchema,
@@ -14,7 +15,23 @@ export const orderSchema = z.object({
   fulfillmentStatus: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  syncedAt: z.date().nullish(),
+  syncedAt: z.coerce.date().nullish(),
+});
+
+// id and the timestamps are database-managed.
+export const createOrderSchema = orderSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateOrderSchema = orderSchema
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .partial();
+
+export const patchOrderSchema = z.object({
+  body: updateOrderSchema,
+  params: idParamSchema,
 });
 
 export type OrderInput = z.infer<typeof orderSchema>;
