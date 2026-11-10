@@ -2,12 +2,39 @@ import { ApiError } from "next/dist/server/api-utils";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { handleRequest } from "@/lib/api-utils";
+import { getRequestBody, handleRequest } from "@/lib/api-utils";
 import { noteSchema } from "@/lib/validation/note.validation";
 
 function createRequest(method = "GET") {
   return new NextRequest("http://localhost/api/test", { method });
 }
+
+function createJsonRequest(body: string) {
+  return new NextRequest("http://localhost/api/test", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+describe("getRequestBody", () => {
+  it("returns the JSON object from the request", async () => {
+    const request = createJsonRequest(
+      JSON.stringify({ notes: "called", score: 2 }),
+    );
+
+    await expect(getRequestBody(request)).resolves.toEqual({
+      notes: "called",
+      score: 2,
+    });
+  });
+
+  it("rejects when the request body is not JSON", async () => {
+    const request = createJsonRequest("{");
+
+    await expect(getRequestBody(request)).rejects.toThrow(SyntaxError);
+  });
+});
 
 describe("handleRequest", () => {
   it.each([
