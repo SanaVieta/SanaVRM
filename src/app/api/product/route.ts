@@ -1,7 +1,8 @@
 import type { NextRequest } from "next/server";
-import { handleRequest } from "@/lib/api-utils";
-import { listProducts } from "@/lib/services/product.services";
+import { getRequestBody, handleRequest } from "@/lib/api-utils";
+import { createProduct, listProducts } from "@/lib/services/product.services";
 import { paginationQuerySchema } from "@/lib/validation/pagination.validation";
+import { createProductSchema } from "@/lib/validation/product.validation";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -16,5 +17,18 @@ export async function GET(req: NextRequest) {
     },
     req,
     { schema: paginationQuerySchema, body },
+  );
+}
+
+export async function POST(req: NextRequest) {
+  return handleRequest(
+    async (body) => {
+      return await createProduct(body);
+    },
+    req,
+    {
+      schema: createProductSchema,
+      body: () => getRequestBody<unknown>(req),
+    },
   );
 }
