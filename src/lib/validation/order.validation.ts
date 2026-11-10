@@ -15,7 +15,7 @@ export const orderSchema = z.object({
   fulfillmentStatus: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  syncedAt: z.date().nullish(),
+  syncedAt: z.coerce.date().nullish(),
 });
 
 // id and the timestamps are database-managed.
