@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { customerSchema } from "@/lib/validation/customer.validation";
 import { inventoryLevelSchema } from "@/lib/validation/inventory-level.validation";
-import { leadSchema } from "@/lib/validation/lead.validation";
+import { leadSchema, updateLeadSchema } from "@/lib/validation/lead.validation";
 import { noteSchema } from "@/lib/validation/note.validation";
 import { orderSchema } from "@/lib/validation/order.validation";
 import { orderItemSchema } from "@/lib/validation/order-item.validation";
@@ -73,6 +73,38 @@ describe("leadSchema", () => {
     expect(
       leadSchema.safeParse({ ...lead, linkSource: "manual" }).success,
     ).toBe(true);
+  });
+});
+
+describe("updateLeadSchema", () => {
+  it("makes every field optional", () => {
+    expect(updateLeadSchema.safeParse({}).success).toBe(true);
+    expect(updateLeadSchema.safeParse({ status: "new" }).success).toBe(true);
+  });
+
+  it("strips the database-managed id, createdAt, and updatedAt", () => {
+    const parsed = updateLeadSchema.parse({
+      id: otherId,
+      createdAt: now,
+      updatedAt: now,
+      city: "Austin",
+    });
+
+    expect(parsed).toEqual({ city: "Austin" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateLeadSchema.safeParse({ status: "won" }).success).toBe(false);
+    expect(updateLeadSchema.safeParse({ email: "nope" }).success).toBe(false);
+  });
+
+  it("accepts linkedAt as a JSON date string", () => {
+    const parsed = updateLeadSchema.parse({
+      customerId: otherId,
+      linkedAt: now.toISOString(),
+    });
+
+    expect(parsed.linkedAt).toEqual(now);
   });
 });
 

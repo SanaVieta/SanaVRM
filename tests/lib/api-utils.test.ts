@@ -29,10 +29,13 @@ describe("getRequestBody", () => {
     });
   });
 
-  it("rejects when the request body is not JSON", async () => {
+  it("rejects invalid JSON with a 400 ApiError", async () => {
     const request = createJsonRequest("{");
 
-    await expect(getRequestBody(request)).rejects.toThrow(SyntaxError);
+    await expect(getRequestBody(request)).rejects.toMatchObject({
+      statusCode: 400,
+      message: "Invalid JSON body",
+    });
   });
 });
 
@@ -134,6 +137,35 @@ describe("handleRequest", () => {
     } finally {
       logError.mockRestore();
     }
+  });
+
+  it("reads a lazy body inside error handling and returns 400 when it fails", async () => {
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const callback = vi.fn();
+
+    try {
+      const response = await handleRequest(callback, createJsonRequest("{"), {
+        schema: z.object({ n: z.number() }),
+        body: () => getRequestBody(createJsonRequest("{")),
+      });
+
+      expect(callback).not.toHaveBeenCalled();
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "Invalid JSON body" });
+    } finally {
+      logError.mockRestore();
+    }
+  });
+
+  it("validates a lazy body that resolves", async () => {
+    const response = await handleRequest(
+      (body: { n: number }) => body,
+      createRequest(),
+      { schema: z.object({ n: z.number() }), body: async () => ({ n: 3 }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ n: 3 });
   });
 
   it("validates with an async schema", async () => {
