@@ -15,10 +15,16 @@ export const inventoryLevelSchema = z.object({
   lowStockThreshold: z.int().nonnegative().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  syncedAt: z.date().nullish(),
+  syncedAt: z.coerce.date().nullish(),
 });
 
 // id and the timestamps are database-managed.
+export const createInventoryLevelSchema = inventoryLevelSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateInventoryLevelSchema = inventoryLevelSchema
   .omit({ id: true, createdAt: true, updatedAt: true })
   .partial();

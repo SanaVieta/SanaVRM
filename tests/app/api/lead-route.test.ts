@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GET } from "@/app/api/lead/route";
+import { GET, POST } from "@/app/api/lead/route";
 
 const repo = vi.hoisted(() => ({
   findAndCount: vi.fn(),
+  create: vi.fn(),
+  save: vi.fn(),
 }));
 
 vi.mock("@/lib/db/getDB", () => ({
@@ -14,6 +16,14 @@ vi.mock("@/lib/db/getDB", () => ({
 
 function listRequest(query = "") {
   return new NextRequest(`http://localhost/api/lead${query}`);
+}
+
+function postRequest(body: string) {
+  return new NextRequest("http://localhost/api/lead", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 describe("GET /api/lead", () => {
@@ -48,5 +58,41 @@ describe("GET /api/lead", () => {
 
     expect(response.status).toBe(400);
     expect(repo.findAndCount).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/lead", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repo.create.mockImplementation((input) => input);
+    repo.save.mockImplementation(async (entity) => ({
+      id: "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b",
+      ...entity,
+    }));
+  });
+
+  it("creates a lead from the JSON body", async () => {
+    const response = await POST(
+      postRequest(JSON.stringify({ status: "new", email: "a@example.com" })),
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ email: "a@example.com" });
+  });
+
+  it("returns 400 when status is missing", async () => {
+    const response = await POST(
+      postRequest(JSON.stringify({ email: "a@example.com" })),
+    );
+
+    expect(response.status).toBe(400);
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when the body is not JSON", async () => {
+    const response = await POST(postRequest("{"));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid JSON body" });
   });
 });

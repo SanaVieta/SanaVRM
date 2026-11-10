@@ -62,7 +62,11 @@ describe("CRM API routes", () => {
     const response = await postLead(
       new NextRequest("http://localhost/api/lead", {
         method: "POST",
-        body: JSON.stringify({ firstName: "A", email: "a@example.com" }),
+        body: JSON.stringify({
+          firstName: "A",
+          email: "a@example.com",
+          status: "new",
+        }),
       }),
     );
     expect(response.status).toBe(201);

@@ -7,6 +7,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Order";
@@ -34,7 +35,7 @@ export async function getOrderById(id: string): Promise<Order> {
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const repo = await getEntityRepository(OrderEntity);
   const order = repo.create(input);
-  return repo.save(order);
+  return saveEntity(repo, order, resourceName);
 }
 
 export async function updateOrder(
@@ -47,7 +48,7 @@ export async function updateOrder(
     resourceName,
   );
   repo.merge(existing, input);
-  return repo.save(existing);
+  return saveEntity(repo, existing, resourceName);
 }
 
 export async function deleteOrder(id: string): Promise<void> {

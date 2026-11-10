@@ -22,10 +22,16 @@ export const productSchema = z.object({
   notes: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  syncedAt: z.date().nullish(),
+  syncedAt: z.coerce.date().nullish(),
 });
 
 // id and the timestamps are database-managed.
+export const createProductSchema = productSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateProductSchema = productSchema
   .omit({ id: true, createdAt: true, updatedAt: true })
   .partial();

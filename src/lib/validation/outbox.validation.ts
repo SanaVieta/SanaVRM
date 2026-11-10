@@ -21,6 +21,11 @@ export const outboxSchema = z.object({
 });
 
 // id and createdAt are database-managed.
+export const createOutboxSchema = outboxSchema.omit({
+  id: true,
+  createdAt: true,
+});
+
 export const updateOutboxSchema = outboxSchema
   .omit({ id: true, createdAt: true })
   .partial();

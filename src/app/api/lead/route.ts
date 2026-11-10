@@ -21,8 +21,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  return handleRequest((body) => createLead(body), req, {
-    schema: createLeadSchema,
-    body: () => getRequestBody<unknown>(req),
-  });
+  return handleRequest(
+    async (body) => {
+      return await createLead(body);
+    },
+    req,
+    {
+      schema: createLeadSchema,
+      body: () => getRequestBody<unknown>(req),
+    },
+  );
 }

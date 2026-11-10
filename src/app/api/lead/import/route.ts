@@ -1,9 +1,11 @@
-import { ApiError } from "next/dist/server/api-utils";
 import type { NextRequest } from "next/server";
-import { QueryFailedError, Raw } from "typeorm";
+import { Raw } from "typeorm";
 import { getRequestBody, handleRequest } from "@/lib/api-utils";
 import { Lead } from "@/lib/db/schemas/lead.schema";
-import { handleTransaction } from "@/lib/services/service-utils";
+import {
+  handleTransaction,
+  rethrowQueryError,
+} from "@/lib/services/service-utils";
 import { importLeadSchema } from "@/lib/validation/lead.validation";
 
 export async function POST(request: NextRequest) {
@@ -41,13 +43,9 @@ export async function POST(request: NextRequest) {
           return { created, updated, skipped };
         });
       } catch (error) {
-        if (
-          error instanceof QueryFailedError &&
-          error.driverError.code === "23505"
-        ) {
-          throw new ApiError(409, "A lead with this email already exists");
-        }
-        throw error;
+        rethrowQueryError(error, "Lead", {
+          email: "A lead with this email already exists",
+        });
       }
     },
     request,

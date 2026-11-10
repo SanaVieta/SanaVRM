@@ -8,7 +8,8 @@ const repo = vi.hoisted(() => ({
   merge: vi.fn(),
   save: vi.fn(),
 }));
-vi.mock("@/lib/services/service-utils", () => ({
+vi.mock("@/lib/services/service-utils", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/services/service-utils")>()),
   handleTransaction: vi.fn(async (callback) =>
     callback({ getRepository: () => repo }),
   ),
