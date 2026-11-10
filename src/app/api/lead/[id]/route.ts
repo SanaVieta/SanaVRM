@@ -41,7 +41,10 @@ export async function PATCH(
       await updateLead(params.id, body);
     },
     request,
-    { schema: patchLeadSchema, body: { body: updateLeadBody, params: { id: id } } },
+    {
+      schema: patchLeadSchema,
+      body: { body: updateLeadBody, params: { id: id } },
+    },
   );
 }
 
@@ -51,10 +54,10 @@ export async function DELETE(
 ): Promise<Response> {
   const id = (await params).id;
   return handleRequest(
-    async (args: IdParam) => {
-      await deleteLead(id);
+    async (params: IdParam) => {
+      await deleteLead(params.id);
     },
     request,
-    { schema: idParamSchema, body: await params },
+    { schema: idParamSchema, body: { id: id } },
   );
 }
