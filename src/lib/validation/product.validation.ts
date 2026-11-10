@@ -26,6 +26,12 @@ export const productSchema = z.object({
 });
 
 // id and the timestamps are database-managed.
+export const createProductSchema = productSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateProductSchema = productSchema
   .omit({ id: true, createdAt: true, updatedAt: true })
   .partial();

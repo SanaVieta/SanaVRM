@@ -19,6 +19,12 @@ export const inventoryLevelSchema = z.object({
 });
 
 // id and the timestamps are database-managed.
+export const createInventoryLevelSchema = inventoryLevelSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateInventoryLevelSchema = inventoryLevelSchema
   .omit({ id: true, createdAt: true, updatedAt: true })
   .partial();

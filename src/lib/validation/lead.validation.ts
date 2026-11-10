@@ -45,4 +45,10 @@ export const patchLeadSchema = z.object({
   params: idParamSchema,
 });
 
+export const createLeadSchema = leadBaseSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type LeadInput = z.infer<typeof leadSchema>;

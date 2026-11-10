@@ -19,6 +19,12 @@ export const orderSchema = z.object({
 });
 
 // id and the timestamps are database-managed.
+export const createOrderSchema = orderSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateOrderSchema = orderSchema
   .omit({ id: true, createdAt: true, updatedAt: true })
   .partial();
