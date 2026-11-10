@@ -49,7 +49,7 @@ describe("customer services", () => {
       offset: 0,
     });
     expect(repo.findAndCount).toHaveBeenCalledWith({
-      order: { createdAt: "DESC" },
+      order: { createdAt: "DESC", id: "DESC" },
       skip: 0,
       take: 10,
     });

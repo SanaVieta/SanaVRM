@@ -27,7 +27,7 @@ describe("GET /api/lead", () => {
 
     expect(response.status).toBe(200);
     expect(repo.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({ order: { createdAt: "ASC" } }),
+      expect.objectContaining({ order: { createdAt: "ASC", id: "ASC" } }),
     );
   });
 

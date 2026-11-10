@@ -93,7 +93,7 @@ describe("findPaginated", () => {
     });
 
     expect(repo.findAndCount).toHaveBeenCalledWith({
-      order: { createdAt: "DESC" },
+      order: { createdAt: "DESC", id: "DESC" },
       skip: 5,
       take: 2,
     });
@@ -110,8 +110,25 @@ describe("findPaginated", () => {
     );
 
     expect(repo.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({ order: { createdAt: "ASC" } }),
+      expect.objectContaining({ order: { createdAt: "ASC", id: "ASC" } }),
     );
+  });
+
+  it("breaks createdAt ties by id in the same direction", async () => {
+    const repo = {
+      findAndCount: vi.fn(async () => [[], 0]),
+    };
+
+    await findPaginated(
+      repo as unknown as Repository<{ id: string; createdAt: Date }>,
+      { createdAt: "DESC" },
+    );
+
+    const [{ order }] = repo.findAndCount.mock.calls[0] as unknown as [
+      { order: Record<string, string> },
+    ];
+    expect(Object.keys(order)).toEqual(["createdAt", "id"]);
+    expect(order.id).toBe("DESC");
   });
 });
 
