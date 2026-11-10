@@ -6,6 +6,7 @@ import { noteSchema } from "@/lib/validation/note.validation";
 import { orderSchema } from "@/lib/validation/order.validation";
 import { orderItemSchema } from "@/lib/validation/order-item.validation";
 import { outboxSchema } from "@/lib/validation/outbox.validation";
+import { idParamSchema } from "@/lib/validation/param.validation";
 import { productSchema } from "@/lib/validation/product.validation";
 
 const id = "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b";
@@ -234,5 +235,17 @@ describe("outboxSchema", () => {
     ]) {
       expect(outboxSchema.safeParse({ ...row, ...bad }).success).toBe(false);
     }
+  });
+});
+
+describe("idParamSchema", () => {
+  it("accepts a uuid id", () => {
+    expect(idParamSchema.parse({ id })).toEqual({ id });
+  });
+
+  it("rejects a missing or non-uuid id", () => {
+    expect(idParamSchema.safeParse({}).success).toBe(false);
+    expect(idParamSchema.safeParse({ id: "123" }).success).toBe(false);
+    expect(idParamSchema.safeParse({ id: ["a", "b"] }).success).toBe(false);
   });
 });
