@@ -76,6 +76,14 @@ describe("updateCustomerSchema", () => {
       updateCustomerSchema.safeParse({ shopifyCustomerId: "abc" }).success,
     ).toBe(false);
   });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    const parsed = updateCustomerSchema.parse({
+      syncedAt: now.toISOString(),
+    });
+
+    expect(parsed.syncedAt).toEqual(now);
+  });
 });
 
 describe("leadSchema", () => {
@@ -181,6 +189,12 @@ describe("updateOrderSchema", () => {
       false,
     );
   });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    expect(
+      updateOrderSchema.parse({ syncedAt: now.toISOString() }).syncedAt,
+    ).toEqual(now);
+  });
 });
 
 describe("orderItemSchema", () => {
@@ -254,6 +268,12 @@ describe("updateProductSchema", () => {
       false,
     );
   });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    expect(
+      updateProductSchema.parse({ syncedAt: now.toISOString() }).syncedAt,
+    ).toEqual(now);
+  });
 });
 
 describe("inventoryLevelSchema", () => {
@@ -306,6 +326,13 @@ describe("updateInventoryLevelSchema", () => {
     expect(updateInventoryLevelSchema.safeParse({ onHand: 1.5 }).success).toBe(
       false,
     );
+  });
+
+  it("accepts syncedAt as a JSON date string", () => {
+    expect(
+      updateInventoryLevelSchema.parse({ syncedAt: now.toISOString() })
+        .syncedAt,
+    ).toEqual(now);
   });
 });
 

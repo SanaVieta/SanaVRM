@@ -1,5 +1,5 @@
 import { ApiError } from "next/dist/server/api-utils";
-import type { EntityManager, Repository } from "typeorm";
+import { type EntityManager, QueryFailedError, type Repository } from "typeorm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deleteByIdOrThrow,
@@ -162,5 +162,27 @@ describe("deleteByIdOrThrow", () => {
     await expect(
       deleteByIdOrThrow(repo, "id", "Customer"),
     ).rejects.toMatchObject({ statusCode: 404, message: "Customer not found" });
+  });
+
+  it("maps a foreign key block on delete to 409", async () => {
+    const repo = {
+      delete: async () => {
+        throw new QueryFailedError(
+          "DELETE FROM customers",
+          [],
+          Object.assign(new Error("constraint"), {
+            code: "23503",
+            detail: 'Key (id)=(1) is still referenced from table "orders".',
+          }),
+        );
+      },
+    };
+
+    await expect(
+      deleteByIdOrThrow(repo, "id", "Customer"),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: "Customer is still referenced",
+    });
   });
 });
