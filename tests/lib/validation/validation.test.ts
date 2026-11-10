@@ -1,13 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { customerSchema } from "@/lib/validation/customer.validation";
-import { inventoryLevelSchema } from "@/lib/validation/inventory-level.validation";
+import {
+  customerSchema,
+  updateCustomerSchema,
+} from "@/lib/validation/customer.validation";
+import {
+  inventoryLevelSchema,
+  updateInventoryLevelSchema,
+} from "@/lib/validation/inventory-level.validation";
 import { leadSchema, updateLeadSchema } from "@/lib/validation/lead.validation";
 import { noteSchema } from "@/lib/validation/note.validation";
-import { orderSchema } from "@/lib/validation/order.validation";
+import {
+  orderSchema,
+  updateOrderSchema,
+} from "@/lib/validation/order.validation";
 import { orderItemSchema } from "@/lib/validation/order-item.validation";
-import { outboxSchema } from "@/lib/validation/outbox.validation";
+import {
+  outboxSchema,
+  updateOutboxSchema,
+} from "@/lib/validation/outbox.validation";
 import { idParamSchema } from "@/lib/validation/param.validation";
-import { productSchema } from "@/lib/validation/product.validation";
+import {
+  productSchema,
+  updateProductSchema,
+} from "@/lib/validation/product.validation";
 
 const id = "3f2b8c1e-9a4d-4e5f-8b6a-1c2d3e4f5a6b";
 const otherId = "7a1c9e2d-5b3f-4a8c-9d0e-2f3a4b5c6d7e";
@@ -40,6 +55,26 @@ describe("customerSchema", () => {
         false,
       );
     }
+  });
+});
+
+describe("updateCustomerSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateCustomerSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateCustomerSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        tags: ["vip"],
+      }),
+    ).toEqual({ tags: ["vip"] });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(
+      updateCustomerSchema.safeParse({ shopifyCustomerId: "abc" }).success,
+    ).toBe(false);
   });
 });
 
@@ -128,6 +163,26 @@ describe("orderSchema", () => {
   });
 });
 
+describe("updateOrderSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateOrderSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateOrderSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        financialStatus: "paid",
+      }),
+    ).toEqual({ financialStatus: "paid" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateOrderSchema.safeParse({ customerId: "123" }).success).toBe(
+      false,
+    );
+  });
+});
+
 describe("orderItemSchema", () => {
   const item = {
     id,
@@ -181,6 +236,26 @@ describe("productSchema", () => {
   });
 });
 
+describe("updateProductSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateProductSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateProductSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        notes: "restock soon",
+      }),
+    ).toEqual({ notes: "restock soon" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateProductSchema.safeParse({ status: "deleted" }).success).toBe(
+      false,
+    );
+  });
+});
+
 describe("inventoryLevelSchema", () => {
   const level = {
     id,
@@ -211,6 +286,26 @@ describe("inventoryLevelSchema", () => {
       inventoryLevelSchema.safeParse({ ...level, lowStockThreshold: -1 })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("updateInventoryLevelSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateInventoryLevelSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateInventoryLevelSchema.parse({
+        id: otherId,
+        createdAt: now,
+        updatedAt: now,
+        lowStockThreshold: 5,
+      }),
+    ).toEqual({ lowStockThreshold: 5 });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateInventoryLevelSchema.safeParse({ onHand: 1.5 }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -267,6 +362,25 @@ describe("outboxSchema", () => {
     ]) {
       expect(outboxSchema.safeParse({ ...row, ...bad }).success).toBe(false);
     }
+  });
+});
+
+describe("updateOutboxSchema", () => {
+  it("makes every field optional and strips database-managed ones", () => {
+    expect(updateOutboxSchema.safeParse({}).success).toBe(true);
+    expect(
+      updateOutboxSchema.parse({
+        id: otherId,
+        createdAt: now,
+        status: "sent",
+      }),
+    ).toEqual({ status: "sent" });
+  });
+
+  it("still validates the fields it keeps", () => {
+    expect(updateOutboxSchema.safeParse({ status: "queued" }).success).toBe(
+      false,
+    );
   });
 });
 
