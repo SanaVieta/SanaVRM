@@ -5,6 +5,7 @@ import {
   shopifyIdSchema,
   uuidSchema,
 } from "@/lib/validation/common";
+import { idParamSchema } from "@/lib/validation/param.validation";
 
 export const productSchema = z.object({
   id: uuidSchema,
@@ -22,6 +23,16 @@ export const productSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   syncedAt: z.date().nullish(),
+});
+
+// id and the timestamps are database-managed.
+export const updateProductSchema = productSchema
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .partial();
+
+export const patchProductSchema = z.object({
+  body: updateProductSchema,
+  params: idParamSchema,
 });
 
 export type ProductInput = z.infer<typeof productSchema>;
