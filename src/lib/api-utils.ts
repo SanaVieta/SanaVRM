@@ -14,7 +14,14 @@ function getHttpStatus(request: NextRequest): number {
 }
 
 export async function getRequestBody<T>(request: NextRequest): Promise<T> {
-  return await request.json();
+  try {
+    return await request.json();
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new ApiError(400, "Invalid JSON body");
+    }
+    throw error;
+  }
 }
 
 /**
@@ -26,7 +33,9 @@ export async function getRequestBody<T>(request: NextRequest): Promise<T> {
  *
  * Pass `validation` to parse `body` with the Zod schema before calling `cb`.
  * The callback then receives the parsed value. A failed parse returns 400
- * and does not call `cb`.
+ * and does not call `cb`. `body` may be a function (sync or async); it is
+ * called inside the error handling, so pass `() => getRequestBody(request)`
+ * to turn an unreadable body into a 400.
  *
  * Throw `ApiError` from `cb` for an expected failure. The response is
  * `{ error: message }` with that status code. Any other thrown error is
@@ -57,7 +66,11 @@ export async function handleRequest<S extends ZodType, T>(
   try {
     let parsedBody: output<S> | undefined;
     if (validation) {
-      const parsed = await validation.schema.safeParseAsync(validation.body);
+      const rawBody =
+        typeof validation.body === "function"
+          ? await validation.body()
+          : validation.body;
+      const parsed = await validation.schema.safeParseAsync(rawBody);
       if (!parsed.success) {
         throw new ApiError(400, prettifyError(parsed.error));
       }
