@@ -51,4 +51,24 @@ export const createLeadSchema = leadBaseSchema.omit({
   updatedAt: true,
 });
 
+export const importLeadSchema = z.object({
+  duplicate: z.enum(["skip", "update"]),
+  rows: z
+    .array(
+      createLeadSchema
+        .pick({
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          city: true,
+          state: true,
+          status: true,
+        })
+        .extend({ createdAt: z.iso.datetime().optional() }),
+    )
+    .min(1)
+    .max(1000),
+});
+
 export type LeadInput = z.infer<typeof leadSchema>;
