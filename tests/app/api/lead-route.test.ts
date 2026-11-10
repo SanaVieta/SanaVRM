@@ -30,4 +30,23 @@ describe("GET /api/lead", () => {
       expect.objectContaining({ order: { createdAt: "ASC" } }),
     );
   });
+
+  it("uses limit and offset from the query", async () => {
+    const response = await GET(listRequest("?limit=25&offset=5"));
+
+    expect(response.status).toBe(200);
+    expect(repo.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 25, skip: 5 }),
+    );
+  });
+
+  it.each([
+    "limit=10abc",
+    "offset=5abc",
+  ])("returns 400 when %s is not an integer", async (query) => {
+    const response = await GET(listRequest(`?${query}`));
+
+    expect(response.status).toBe(400);
+    expect(repo.findAndCount).not.toHaveBeenCalled();
+  });
 });
