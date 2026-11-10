@@ -1,5 +1,5 @@
 import { ApiError } from "next/dist/server/api-utils";
-import { QueryFailedError, type Repository } from "typeorm";
+import type { Repository } from "typeorm";
 import type { Lead } from "@/lib/db/schemas/lead.schema";
 import { Lead as LeadEntity } from "@/lib/db/schemas/lead.schema";
 import {
@@ -9,6 +9,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Lead";
@@ -20,35 +21,13 @@ export type CreateLeadInput = Omit<
 
 export type UpdateLeadInput = Partial<CreateLeadInput>;
 
-const UNIQUE_VIOLATION = "23505";
-
 const uniqueViolationMessages: Record<string, string> = {
   customer_id: "Customer is already linked to another lead",
   email: "A lead with this email already exists",
 };
 
-// Postgres reports the offending column in `detail` as "Key (column)=(value)
-// ...". Only the column is used, so the message never echoes the value.
-function toConflictError(error: unknown): unknown {
-  if (!(error instanceof QueryFailedError)) return error;
-  const { code, detail } = error.driverError as {
-    code?: string;
-    detail?: string;
-  };
-  if (code !== UNIQUE_VIOLATION) return error;
-  const column = detail?.match(/^Key \(([^)]+)\)/)?.[1] ?? "";
-  return new ApiError(
-    409,
-    uniqueViolationMessages[column] ?? `${resourceName} already exists`,
-  );
-}
-
-async function saveLead(repo: Repository<Lead>, entity: Lead): Promise<Lead> {
-  try {
-    return await repo.save(entity);
-  } catch (error) {
-    throw toConflictError(error);
-  }
+function saveLead(repo: Repository<Lead>, entity: Lead): Promise<Lead> {
+  return saveEntity(repo, entity, resourceName, uniqueViolationMessages);
 }
 
 function assertLeadLinkFields(input: {

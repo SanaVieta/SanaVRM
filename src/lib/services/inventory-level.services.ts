@@ -7,6 +7,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Inventory level";
@@ -38,7 +39,7 @@ export async function createInventoryLevel(
 ): Promise<InventoryLevel> {
   const repo = await getEntityRepository(InventoryLevelEntity);
   const inventoryLevel = repo.create(input);
-  return repo.save(inventoryLevel);
+  return saveEntity(repo, inventoryLevel, resourceName);
 }
 
 export async function updateInventoryLevel(
@@ -51,7 +52,7 @@ export async function updateInventoryLevel(
     resourceName,
   );
   repo.merge(existing, input);
-  return repo.save(existing);
+  return saveEntity(repo, existing, resourceName);
 }
 
 export async function deleteInventoryLevel(id: string): Promise<void> {

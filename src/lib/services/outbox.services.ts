@@ -7,6 +7,7 @@ import {
   type PaginatedResult,
   type PaginationParams,
   requireEntity,
+  saveEntity,
 } from "@/lib/services/service-utils";
 
 const resourceName = "Outbox entry";
@@ -33,7 +34,7 @@ export async function createOutboxEntry(
 ): Promise<Outbox> {
   const repo = await getEntityRepository(OutboxEntity);
   const outbox = repo.create(input);
-  return repo.save(outbox);
+  return saveEntity(repo, outbox, resourceName);
 }
 
 export async function updateOutboxEntry(
@@ -46,7 +47,7 @@ export async function updateOutboxEntry(
     resourceName,
   );
   repo.merge(existing, input);
-  return repo.save(existing);
+  return saveEntity(repo, existing, resourceName);
 }
 
 export async function deleteOutboxEntry(id: string): Promise<void> {
