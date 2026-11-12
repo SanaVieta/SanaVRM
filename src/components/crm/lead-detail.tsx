@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { readApi, readCollection } from "@/lib/crm-api";
+import { callApi, readCollection } from "@/lib/crm-api";
 import {
   formatDate,
   formatMoney,
@@ -74,8 +74,8 @@ export function LeadDetail({ id }: { id: string }) {
     setLoading(true);
     setError("");
     Promise.all([
-      readApi<LeadRecord>(`/api/lead/${id}`, { signal: controller.signal }),
-      readApi<NoteRecord[]>(`/api/lead/${id}/notes`, {
+      callApi<LeadRecord>(`/api/lead/${id}`, { signal: controller.signal }),
+      callApi<NoteRecord[]>(`/api/lead/${id}/notes`, {
         signal: controller.signal,
       }),
       readCollection<OrderRecord>("/api/order", controller.signal),
@@ -100,7 +100,7 @@ export function LeadDetail({ id }: { id: string }) {
     setBusy(true);
     setActionError("");
     try {
-      await readApi(`/api/lead/${id}/notes`, {
+      await callApi(`/api/lead/${id}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: noteText }),
@@ -122,7 +122,7 @@ export function LeadDetail({ id }: { id: string }) {
     setActionError("");
     const values = new FormData(event.currentTarget);
     try {
-      await readApi(`/api/lead/${id}`, {
+      await callApi(`/api/lead/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

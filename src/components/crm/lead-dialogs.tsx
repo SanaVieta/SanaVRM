@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { readApi } from "@/lib/crm-api";
+import { callApi } from "@/lib/crm-api";
 import {
   csvColumns,
   downloadLeadTemplate,
@@ -39,7 +39,7 @@ export function AddLeadDialog({
     setBusy(true);
     setError("");
     try {
-      await readApi("/api/lead", {
+      await callApi("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,7 +167,7 @@ export function ImportLeadsDialog({
     setBusy(true);
     setError("");
     try {
-      const response = await readApi<{
+      const response = await callApi<{
         created: number;
         updated: number;
         skipped: number;
