@@ -1,15 +1,9 @@
 "use client";
-
-import { Box, ShoppingCart, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { routes } from "@/lib/client-routes"
 
-const navigation = [
-  { href: "/", label: "Leads", icon: Users },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/products", label: "Products", icon: Box },
-];
 
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -26,7 +20,7 @@ export function Shell({ children }: { children: ReactNode }) {
           aria-label="Main navigation"
           className="flex gap-1 overflow-x-auto md:flex-col"
         >
-          {navigation.map(({ href, label, icon: Icon }) => {
+          {routes.map(({ href, label, icon: Icon }) => {
             const active =
               href === "/"
                 ? pathname === "/" || pathname.startsWith("/leads/")
