@@ -33,6 +33,7 @@ export default function Home() {
   const [size, setSize] = useState(5);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  //  logic for filtering and searching
   const matches = rows.filter(
     (lead) =>
       (filter === "All" || lead.status === filter) &&
