@@ -48,6 +48,7 @@ When adding code, write it so `yarn lint` passes without suppressions. Prefer fi
 - Restrict **`"use client"`** to small, isolated pieces (forms, browser APIs, local UI state).
 - Follow App Router conventions: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, and route handlers where appropriate.
 - Before implementing Next.js APIs, read `node_modules/next/dist/docs/` for this repo’s version.
+- CRM pages that belong in the sidebar are listed in `src/lib/client-routes.ts` (`routes`: `href`, `label`, `icon`). `src/components/crm/shell.tsx` renders that list. Add the page there; do not hardcode a new link in the shell.
 
 ## Data fetching (Supabase and server data)
 
