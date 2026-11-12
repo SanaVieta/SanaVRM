@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { LoaderCircle } from "lucide-react";
 
 export function Truncate({
   children,
@@ -121,8 +122,9 @@ export function DataState({
 }) {
   if (loading)
     return (
-      <output className="rounded-[14px] border border-[#DFE6D6] bg-white p-10 text-center text-[#4F5E4B]">
-        Loading data…
+      <output className="fixed top-1/2 left-1/2 z-10 flex w-max max-w-[calc(100vw-2.5rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-3 rounded-[14px] border border-[#DFE6D6] bg-white p-10 text-center text-[#4F5E4B] md:left-[calc(50%+124px)]">
+        <LoaderCircle className="animate-spin" aria-hidden="true" />
+        Loading…
       </output>
     );
   if (error)
