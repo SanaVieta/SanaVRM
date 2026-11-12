@@ -12,9 +12,10 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="flex shrink-0 flex-col border-b border-[#DFE6D6] bg-white p-4 md:min-h-screen md:w-[248px] md:border-r md:border-b-0 md:px-4 md:py-6">
         <Link
           href="/"
-          className="mb-5 inline-flex items-baseline gap-0.5 px-3 text-[25px] font-bold tracking-[-.065em] text-[#1B6510] md:mb-8"
+          className="mb-5 inline-flex items-center gap-0.5 px-3 text-[25px] font-bold tracking-[-.065em] text-[#1B6510] md:mb-8"
         >
-          Sana<span className="text-[#6DA245]">Vieta</span>
+          <img src="/icon.png" alt="SanaVieta CRM" className="h-10 w-10" />
+          Sana<span className="text-[#6DA245]">Vrm</span>
         </Link>
         <nav
           aria-label="Main navigation"
