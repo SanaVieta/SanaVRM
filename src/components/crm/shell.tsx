@@ -38,6 +38,7 @@ export function Shell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        {/* TODO: Add user avatar and name */}
         <div className="mt-auto hidden border-t border-[#DFE6D6] pt-5 md:flex md:items-center md:gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1B6510] text-sm font-semibold text-white">
             SV
