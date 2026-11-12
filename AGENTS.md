@@ -41,6 +41,7 @@ When adding code, write it so `yarn lint` passes without suppressions. Prefer fi
 - **Readability** over micro-optimizations; still keep code secure and performant.
 - **Completeness:** no TODOs, placeholders, or half-implemented paths unless the user explicitly asks for a scaffold only.
 - **Reference file paths** when describing or reviewing changes.
+- **Asynchronous functions** prefer using `async/await` over `.then((data) =>...).catch((err)=>...) unless really needed
 
 ## Next.js and React
 
@@ -49,7 +50,7 @@ When adding code, write it so `yarn lint` passes without suppressions. Prefer fi
 - Follow App Router conventions: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, and route handlers where appropriate.
 - Before implementing Next.js APIs, read `node_modules/next/dist/docs/` for this repo’s version.
 - CRM pages that belong in the sidebar are listed in `src/lib/client-routes.ts` (`routes`: `href`, `label`, `icon`). `src/components/crm/shell.tsx` renders that list. Add the page there; do not hardcode a new link in the shell.
-
+- If a `useEffect` is running an api call, wrap the call inside an IIFE (Immediately Invoked Function Expression) in order to use `async/await`.
 ## Data fetching (Supabase and server data)
 
 - Fetch on the server when possible (RSC, Server Actions, Route Handlers).
