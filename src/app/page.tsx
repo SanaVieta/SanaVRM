@@ -14,6 +14,9 @@ import {
   Panel,
   Pill,
   Summary,
+  Table,
+  TableBody,
+  TableHeader,
   Truncate,
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
@@ -114,31 +117,22 @@ export default function Home() {
               </label>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-[15px]">
-                <thead className="bg-[#F5F7F1] text-xs font-bold tracking-wide text-[#3E4D3A] uppercase">
-                  <tr>
-                    {[
-                      "Full name",
-                      "Phone",
-                      "Email",
-                      "City",
-                      "State",
-                      "Status",
-                      "Shopify",
-                      "Creation date",
-                    ].map((label) => (
-                      <th key={label} scope="col" className="px-4 py-3">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((lead) => (
-                    <tr
-                      key={lead.id}
-                      className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]"
-                    >
+              <Table>
+                <TableHeader
+                  headers={[
+                    "Full name",
+                    "Phone",
+                    "Email",
+                    "City",
+                    "State",
+                    "Status",
+                    "Shopify",
+                    "Creation date",
+                  ]}
+                />
+                <TableBody rows={visible} getKey={(lead) => lead.id}>
+                  {(lead) => (
+                    <tr className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]">
                       <td className="max-w-[240px] px-4 py-3 font-semibold">
                         <Link
                           title={leadName(lead)}
@@ -182,9 +176,9 @@ export default function Home() {
                         {formatDate(lead.createdAt)}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  )}
+                </TableBody>
+              </Table>
             </div>
             {visible.length === 0 && (
               <p className="p-10 text-center text-[#4F5E4B]">

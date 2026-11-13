@@ -9,6 +9,9 @@ import {
   Panel,
   Pill,
   Summary,
+  Table,
+  TableBody,
+  TableHeader,
   Truncate,
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
@@ -131,72 +134,67 @@ export default function ProductsPage() {
               </label>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] text-left text-[15px]">
-                <thead className="bg-[#F5F7F1] text-xs font-bold tracking-wide text-[#3E4D3A] uppercase">
-                  <tr>
-                    {[
-                      "Product",
-                      "SKU",
-                      "Price",
-                      "Available",
-                      "On hand",
-                      "Committed",
-                      "Alert at",
-                      "Stock",
-                    ].map((label) => (
-                      <th scope="col" key={label} className="px-4 py-3">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {matches
-                    .slice((current - 1) * size, current * size)
-                    .map((product) => {
-                      const qty = inventory(product);
-                      return (
-                        <tr
-                          className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]"
-                          key={product.id}
-                        >
-                          <td className="max-w-[250px] px-4 py-3 font-semibold text-[#124A0A]">
-                            <Truncate>
-                              {product.title || "Untitled variant"}
-                            </Truncate>
-                          </td>
-                          <td className="max-w-[200px] px-4 py-3">
-                            <Truncate>{product.sku || "—"}</Truncate>
-                          </td>
-                          <td className="px-4 py-3">
-                            {product.price == null
-                              ? "—"
-                              : formatMoney(product.price)}
-                          </td>
-                          <td className="px-4 py-3">{qty.available}</td>
-                          <td className="px-4 py-3">{qty.onHand}</td>
-                          <td className="px-4 py-3">{qty.committed}</td>
-                          <td className="px-4 py-3">{qty.threshold || "—"}</td>
-                          <td className="px-4 py-3">
-                            <Pill
-                              tone={
-                                qty.stock === "Out of stock"
-                                  ? "danger"
-                                  : qty.stock === "Low stock"
-                                    ? "warning"
-                                    : qty.stock === "In stock"
-                                      ? "good"
-                                      : "neutral"
-                              }
-                            >
-                              {qty.stock}
-                            </Pill>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+              <Table>
+                <TableHeader
+                  headers={[
+                    "Product",
+                    "SKU",
+                    "Price",
+                    "Available",
+                    "On hand",
+                    "Committed",
+                    "Alert at",
+                    "Stock",
+                  ]}
+                />
+                <TableBody
+                  rows={matches.slice((current - 1) * size, current * size)}
+                  getKey={(product) => product.id}
+                >
+                  {(product) => {
+                    const qty = inventory(product);
+                    return (
+                      <tr className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]">
+                        <td className="max-w-[250px] px-4 py-3 font-semibold text-[#124A0A]">
+                          <Truncate>
+                            {product.title || "Untitled variant"}
+                          </Truncate>
+                        </td>
+                        <td className="max-w-[200px] px-4 py-3">
+                          <Truncate>{product.sku || "—"}</Truncate>
+                        </td>
+                        <td className="px-4 py-3">
+                          {product.price == null
+                            ? "—"
+                            : formatMoney(product.price)}
+                        </td>
+                        {Object.entries(qty)
+                          .filter(([key]) => key !== "stock")
+                          .map(([key, val]) => (
+                            <td key={key} className="px-4 py-3">
+                              {key === "threshold" ? val || "—" : val}
+                            </td>
+                          ))}
+                        <td className="px-4 py-3">
+                          <Pill
+                            tone={
+                              qty.stock === "Out of stock"
+                                ? "danger"
+                                : qty.stock === "Low stock"
+                                  ? "warning"
+                                  : qty.stock === "In stock"
+                                    ? "good"
+                                    : "neutral"
+                            }
+                          >
+                            {qty.stock}
+                          </Pill>
+                        </td>
+                      </tr>
+                    );
+                  }}
+                </TableBody>
+              </Table>
             </div>
             {matches.length === 0 && (
               <p className="p-10 text-center text-[#4F5E4B]">
