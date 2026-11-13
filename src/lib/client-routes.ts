@@ -1,4 +1,4 @@
-import { Users, ShoppingCart, Box, LucideIcon } from "lucide-react";
+import { Box, type LucideIcon, ShoppingCart, Users } from "lucide-react";
 
 type Route = {
   href: string;
