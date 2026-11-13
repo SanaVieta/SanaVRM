@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +32,7 @@ export function AddLeadDialog({
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  async function submitLead(event: FormEvent<HTMLFormElement>) {
+  async function submitLead(event: React.ChangeEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
