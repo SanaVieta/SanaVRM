@@ -1,8 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 export function Truncate({
   children,
@@ -241,5 +241,45 @@ export function Filters({
         </Button>
       ))}
     </fieldset>
+  );
+}
+
+export function Table({ children }: { children: ReactNode }) {
+  return (
+    <table className="w-full min-w-[800px] text-left text-[15px]">
+      {children}
+    </table>
+  );
+}
+
+export function TableHeader({ headers }: { headers: string[] }) {
+  return (
+    <thead className="bg-[#F5F7F1] text-xs font-bold tracking-wide text-[#3E4D3A] uppercase">
+      <tr>
+        {headers.map((label) => (
+          <th scope="col" key={label} className="px-4 py-3">
+            {label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+export function TableBody<T>({
+  rows,
+  getKey,
+  children,
+}: {
+  rows: T[];
+  getKey: (row: T) => string | number;
+  children: (row: T) => ReactNode;
+}) {
+  return (
+    <tbody>
+      {rows.map((row) => (
+        <Fragment key={getKey(row)}>{children(row)}</Fragment>
+      ))}
+    </tbody>
   );
 }
