@@ -50,6 +50,7 @@ When adding code, write it so `yarn lint` passes without suppressions. Prefer fi
 - Follow App Router conventions: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, and route handlers where appropriate.
 - Before implementing Next.js APIs, read `node_modules/next/dist/docs/` for this repo’s version.
 - CRM pages that belong in the sidebar are listed in `src/lib/client-routes.ts` (`routes`: `href`, `label`, `icon`). `src/components/crm/shell.tsx` renders that list. Add the page there; do not hardcode a new link in the shell.
+- When rendering tabular data in the CRM, use `Table`, `TableHeader`, and `TableBody` from `src/components/crm/shared.tsx` instead of hand-rolled `<table>`/`<thead>`/`<tbody>` markup. `TableHeader` takes `headers: string[]`; `TableBody` takes `rows`, `getKey`, and a `children` render-prop returning the `<tr>`.
 - If a `useEffect` is running an api call, wrap the call inside an IIFE (Immediately Invoked Function Expression) in order to use `async/await`.
 ## Data fetching (Supabase and server data)
 
