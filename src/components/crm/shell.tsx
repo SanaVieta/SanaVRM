@@ -14,7 +14,7 @@ export function Shell({ children }: { children: ReactNode }) {
           href="/"
           className="mb-5 inline-flex items-center gap-0.5 px-3 text-[25px] font-bold tracking-[-.065em] text-[#1B6510] md:mb-8"
         >
-          <Image src="/icon.png" alt="SanaVieta CRM" className="h-10 w-10" />
+          <Image src="/icon.png" alt="SanaVieta CRM" width={40} height={40} />
           Sana<span className="text-[#6DA245]">Vrm</span>
         </Link>
         <nav
