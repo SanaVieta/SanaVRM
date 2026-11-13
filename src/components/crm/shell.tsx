@@ -2,8 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { routes } from "@/lib/client-routes"
-
+import { routes } from "@/lib/client-routes";
 
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
