@@ -73,25 +73,26 @@ export function LeadDetail({ id }: { id: string }) {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    Promise.all([
-      callApi<LeadRecord>(`/api/lead/${id}`, { signal: controller.signal }),
-      callApi<NoteRecord[]>(`/api/lead/${id}/notes`, {
-        signal: controller.signal,
-      }),
-      readCollection<OrderRecord>("/api/order", controller.signal),
-    ])
-      .then(([leadData, noteData, orderData]) => {
+    void (async () => {
+      try {
+        const [leadData, noteData, orderData] = await Promise.all([
+          callApi<LeadRecord>(`/api/lead/${id}`, { signal: controller.signal }),
+          callApi<NoteRecord[]>(`/api/lead/${id}/notes`, {
+            signal: controller.signal,
+          }),
+          readCollection<OrderRecord>("/api/order", controller.signal),
+        ]);
         setLead(leadData);
         setNotes(noteData);
         setOrders(orderData);
         setLoading(false);
-      })
-      .catch((cause: unknown) => {
+      } catch (cause: unknown) {
         if (controller.signal.aborted) return;
         console.error("Could not load lead detail", cause);
         setError("Could not load lead details. Try again.");
         setLoading(false);
-      });
+      }
+    })();
     return () => controller.abort();
   }, [id, revision]);
 
