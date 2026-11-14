@@ -1,7 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readCollection } from "@/lib/crm-api";
+import { callApi, readCollection } from "@/lib/crm-api";
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("callApi", () => {
+  it("resolves without parsing JSON on 204", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 204,
+        json: async () => {
+          throw new Error("No body");
+        },
+      }),
+    );
+
+    await expect(
+      callApi<void>("/api/lead/1", { method: "DELETE" }),
+    ).resolves.toBeUndefined();
+  });
+});
 
 describe("readCollection", () => {
   it("loads every page without dropping rows at a page boundary", async () => {

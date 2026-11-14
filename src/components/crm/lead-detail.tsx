@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   DataState,
   PageHeader,
@@ -57,7 +58,9 @@ function NoteItem({ note }: { note: NoteRecord }) {
 }
 
 export function LeadDetail({ id }: { id: string }) {
+  const router = useRouter();
   const [lead, setLead] = useState<LeadRecord | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +99,7 @@ export function LeadDetail({ id }: { id: string }) {
     return () => controller.abort();
   }, [id, revision]);
 
-  async function saveNote(event: FormEvent<HTMLFormElement>) {
+  async function saveNote(event: React.ChangeEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setActionError("");
@@ -147,6 +150,22 @@ export function LeadDetail({ id }: { id: string }) {
     }
   }
 
+  async function confirmDeleteLead() {
+    setBusy(true);
+    setActionError("");
+    try {
+      await callApi(`/api/lead/${id}`, { method: "DELETE" });
+      setDeleteConfirmOpen(false);
+      router.push("/");
+    } catch (cause) {
+      setActionError(
+        cause instanceof Error ? cause.message : "Could not delete lead.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const customerOrders = orders.filter(
     (order) => lead?.customerId && order.customerId === lead.customerId,
   );
@@ -165,14 +184,25 @@ export function LeadDetail({ id }: { id: string }) {
             title={leadName(lead)}
             description={`${lead.status} · Created ${formatDate(lead.createdAt)}`}
             actions={
-              <Button
-                onClick={() => {
-                  setActionError("");
-                  setEditing(true);
-                }}
-              >
-                Edit lead
-              </Button>
+              <>
+                <Button
+                  onClick={() => {
+                    setActionError("");
+                    setEditing(true);
+                  }}
+                >
+                  Edit lead
+                </Button>
+                <Button
+                  className="bg-red-500 text-white hover:bg-red-600"
+                  onClick={() => {
+                    setActionError("");
+                    setDeleteConfirmOpen(true);
+                  }}
+                >
+                  Delete lead
+                </Button>
+              </>
             }
           />
           <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
@@ -391,6 +421,45 @@ export function LeadDetail({ id }: { id: string }) {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={deleteConfirmOpen}
+        onOpenChange={(value) => {
+          if (!value) setDeleteConfirmOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete lead</DialogTitle>
+            <DialogDescription>
+              {lead
+                ? `Are you sure you want to delete ${leadName(lead)}? This cannot be undone.`
+                : "Are you sure you want to delete this lead? This cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          {actionError && deleteConfirmOpen && (
+            <p role="alert" className="text-[#8A2A1B]">
+              {actionError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-red-500 text-white hover:bg-red-600"
+              disabled={busy}
+              onClick={() => void confirmDeleteLead()}
+            >
+              {busy ? "Deleting…" : "Delete lead"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </Shell>

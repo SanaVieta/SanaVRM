@@ -19,11 +19,13 @@ export type LeadImportResult = {
  *
  * @param url Request URL, including any query string.
  * @param init Optional `fetch` options merged onto `{ cache: "no-store" }`.
- * @returns The parsed JSON body, typed as `T`.
+ * @returns The parsed JSON body, typed as `T`. DELETE responses with status
+ * 204 resolve to `undefined`.
  */
 export async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: "no-store", ...init });
-  const result: unknown = await response.json();
+  const result: unknown =
+    response.status === 204 ? undefined : await response.json();
   if (!response.ok) {
     throw new Error(
       typeof result === "object" &&
