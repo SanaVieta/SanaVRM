@@ -1,9 +1,12 @@
 "use client";
 
+import { PencilIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import {
   AddLeadDialog,
+  DeleteLeadDialog,
+  EditLeadDialog,
   ImportLeadsDialog,
 } from "@/components/crm/lead-dialogs";
 import {
@@ -36,6 +39,8 @@ export default function Home() {
   const [size, setSize] = useState(5);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [editLead, setEditLead] = useState<LeadRecord | null>(null);
+  const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
   //  logic for filtering and searching
   const matches = rows.filter(
     (lead) =>
@@ -128,6 +133,7 @@ export default function Home() {
                     "Status",
                     "Shopify",
                     "Creation date",
+                    "Actions",
                   ]}
                 />
                 <TableBody rows={visible} getKey={(lead) => lead.id}>
@@ -175,6 +181,26 @@ export default function Home() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatDate(lead.createdAt)}
                       </td>
+                      <td className="whitespace-nowrap">
+                        <div className="flex gap-2 items-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            aria-label={`Delete ${leadName(lead)}`}
+                            onClick={() => setDeleteLead(lead)}
+                          >
+                            <TrashIcon className="h-4 w-4 text-red-500" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            aria-label={`Edit ${leadName(lead)}`}
+                            onClick={() => setEditLead(lead)}
+                          >
+                            <PencilIcon className="h-4 w-4 text-blue-500" />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   )}
                 </TableBody>
@@ -210,6 +236,18 @@ export default function Home() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onSaved={refresh}
+      />
+      <EditLeadDialog
+        open={editLead !== null}
+        onClose={() => setEditLead(null)}
+        lead={editLead}
+        onSaved={refresh}
+      />
+      <DeleteLeadDialog
+        open={deleteLead !== null}
+        onClose={() => setDeleteLead(null)}
+        lead={deleteLead}
+        onDeleted={refresh}
       />
     </Shell>
   );

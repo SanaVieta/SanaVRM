@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { callApi, importLeadsInBatches } from "@/lib/crm-api";
+import { type LeadRecord, leadName } from "@/lib/crm-types";
 import {
   chunkImportRows,
   csvColumns,
@@ -363,6 +364,199 @@ export function ImportLeadsDialog({
                     : `Import ${rows.length} leads`}
             </Button>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function EditLeadDialog({
+  open,
+  onClose,
+  lead,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lead: LeadRecord | null;
+  onSaved: () => void;
+}) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function saveLead(event: React.ChangeEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!lead) return;
+    setBusy(true);
+    setError("");
+    const values = new FormData(event.currentTarget);
+    try {
+      await callApi(`/api/lead/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: String(values.get("firstName") ?? "") || null,
+          lastName: String(values.get("lastName") ?? "") || null,
+          phone: String(values.get("phone") ?? "") || null,
+          email: String(values.get("email") ?? "") || null,
+          city: String(values.get("city") ?? "") || null,
+          state: String(values.get("state") ?? "") || null,
+          status: values.get("status"),
+        }),
+      });
+      onClose();
+      onSaved();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Could not update lead.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit lead</DialogTitle>
+          <DialogDescription>
+            Update the lead’s contact details and status.
+          </DialogDescription>
+        </DialogHeader>
+        {lead && (
+          <form
+            key={lead.id}
+            className="grid gap-3 sm:grid-cols-2"
+            onSubmit={saveLead}
+          >
+            {(
+              [
+                "firstName",
+                "lastName",
+                "phone",
+                "email",
+                "city",
+                "state",
+              ] as const
+            ).map((field) => (
+              <label
+                key={field}
+                htmlFor={`edit-${field}-${lead.id}`}
+                className="capitalize"
+              >
+                {field.replace(/([A-Z])/g, " $1")}
+                <Input
+                  id={`edit-${field}-${lead.id}`}
+                  name={field}
+                  defaultValue={lead[field] ?? ""}
+                  type={field === "email" ? "email" : "text"}
+                  className="mt-1 h-11"
+                />
+              </label>
+            ))}
+            <label htmlFor={`edit-status-${lead.id}`}>
+              Status
+              <select
+                id={`edit-status-${lead.id}`}
+                name="status"
+                defaultValue={lead.status}
+                className="mt-1 h-11 w-full rounded-lg border border-[#B9C7AC] bg-white px-3"
+              >
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="sm:col-span-2">
+              {error && (
+                <p role="alert" className="text-[#8A2A1B]">
+                  {error}
+                </p>
+              )}
+              <div className="mt-3 flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={busy}>
+                  {busy ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function DeleteLeadDialog({
+  open,
+  onClose,
+  lead,
+  onDeleted,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lead: LeadRecord | null;
+  onDeleted: () => void;
+}) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function confirmDelete() {
+    if (!lead) return;
+    setBusy(true);
+    setError("");
+    try {
+      await callApi(`/api/lead/${lead.id}`, { method: "DELETE" });
+      onClose();
+      onDeleted();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Could not delete lead.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete lead</DialogTitle>
+          <DialogDescription>
+            {lead
+              ? `Are you sure you want to delete ${leadName(lead)}? This cannot be undone.`
+              : "Are you sure you want to delete this lead? This cannot be undone."}
+          </DialogDescription>
+        </DialogHeader>
+        {error && (
+          <p role="alert" className="text-[#8A2A1B]">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="bg-red-500 text-white hover:bg-red-600"
+            disabled={busy}
+            onClick={() => void confirmDelete()}
+          >
+            {busy ? "Deleting…" : "Delete lead"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
