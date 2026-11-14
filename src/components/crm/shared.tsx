@@ -140,6 +140,59 @@ export function DataState({
   return null;
 }
 
+const PAGER_EDGE_COUNT = 5;
+
+export type PagerPageItem =
+  | { kind: "page"; page: number }
+  | { kind: "ellipsis"; id: "leading" | "trailing" };
+
+export function buildPagerPageItems(
+  current: number,
+  pages: number,
+): PagerPageItem[] {
+  if (pages <= 1) {
+    return [{ kind: "page", page: 1 }];
+  }
+  if (pages <= 7) {
+    return Array.from({ length: pages }, (_, index) => ({
+      kind: "page" as const,
+      page: index + 1,
+    }));
+  }
+
+  if (current <= PAGER_EDGE_COUNT) {
+    return [
+      ...Array.from({ length: PAGER_EDGE_COUNT }, (_, index) => ({
+        kind: "page" as const,
+        page: index + 1,
+      })),
+      { kind: "ellipsis", id: "trailing" },
+      { kind: "page", page: pages },
+    ];
+  }
+
+  if (current >= pages - (PAGER_EDGE_COUNT - 1)) {
+    return [
+      { kind: "page", page: 1 },
+      { kind: "ellipsis", id: "leading" },
+      ...Array.from({ length: PAGER_EDGE_COUNT }, (_, index) => ({
+        kind: "page" as const,
+        page: pages - (PAGER_EDGE_COUNT - 1) + index,
+      })),
+    ];
+  }
+
+  return [
+    { kind: "page", page: 1 },
+    { kind: "ellipsis", id: "leading" },
+    { kind: "page", page: current - 1 },
+    { kind: "page", page: current },
+    { kind: "page", page: current + 1 },
+    { kind: "ellipsis", id: "trailing" },
+    { kind: "page", page: pages },
+  ];
+}
+
 export function Pager({
   page,
   setPage,
@@ -192,17 +245,25 @@ export function Pager({
         >
           Previous
         </Button>
-        {Array.from({ length: pages }, (_, index) => index + 1).map(
-          (number) => (
-            <Button
-              key={number}
-              size="icon"
-              variant={current === number ? "default" : "outline"}
-              aria-label={`Page ${number}`}
-              aria-current={current === number ? "page" : undefined}
-              onClick={() => setPage(number)}
+        {buildPagerPageItems(current, pages).map((item) =>
+          item.kind === "ellipsis" ? (
+            <span
+              key={`ellipsis-${item.id}`}
+              aria-hidden="true"
+              className="px-1 text-[#4F5E4B]"
             >
-              {number}
+              …
+            </span>
+          ) : (
+            <Button
+              key={item.page}
+              size="icon"
+              variant={current === item.page ? "default" : "outline"}
+              aria-label={`Page ${item.page}`}
+              aria-current={current === item.page ? "page" : undefined}
+              onClick={() => setPage(item.page)}
+            >
+              {item.page}
             </Button>
           ),
         )}
