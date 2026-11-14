@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { type SubmitEvent, useCallback, useEffect, useState } from "react";
 import {
   DataState,
   PageHeader,
@@ -99,7 +99,7 @@ export function LeadDetail({ id }: { id: string }) {
     return () => controller.abort();
   }, [id, revision]);
 
-  async function saveNote(event: React.ChangeEvent<HTMLFormElement>) {
+  async function saveNote(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setActionError("");
@@ -120,7 +120,7 @@ export function LeadDetail({ id }: { id: string }) {
     }
   }
 
-  async function saveLead(event: FormEvent<HTMLFormElement>) {
+  async function saveLead(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setActionError("");
