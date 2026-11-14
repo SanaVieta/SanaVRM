@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Pager,
   Panel,
+  Pill,
   Table,
   TableBody,
   TableHeader,
@@ -219,7 +220,7 @@ export function ImportLeadsDialog({
         if (!value) onClose();
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] flex-col gap-4 overflow-y-auto p-4 sm:max-w-[52rem]">
         <DialogHeader>
           <DialogTitle>Import leads from CSV</DialogTitle>
           <DialogDescription>
@@ -240,67 +241,82 @@ export function ImportLeadsDialog({
           Columns: {csvColumns.join(", ")}. Status: {statuses.join(", ")}.
         </p>
         {rows.length > 0 && (
-          <div className="min-w-0">
-            <h3 className="mb-2 font-semibold">
-              Preview · {fileName} ({rows.length} leads)
+          <Panel label="Import preview">
+            <h3
+              title={`Preview · ${fileName} (${rows.length} leads)`}
+              className="border-b border-[#DFE6D6] px-5 py-4 text-lg font-bold text-[#124A0A]"
+            >
+              <span className="block truncate">
+                Preview · {fileName} ({rows.length} leads)
+              </span>
             </h3>
-            <Panel label="Import preview">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader
-                    headers={[
-                      "Full name",
-                      "Email",
-                      "Phone",
-                      "City",
-                      "State",
-                      "Status",
-                    ]}
-                  />
-                  <TableBody
-                    rows={previewVisible}
-                    getKey={(row) => rows.indexOf(row)}
-                  >
-                    {(row) => (
-                      <tr className="border-t border-[#E8EEE0]">
-                        <td className="max-w-[240px] px-4 py-3 font-semibold">
-                          <Truncate>
-                            {[row.firstName, row.lastName]
-                              .filter(Boolean)
-                              .join(" ") || "—"}
-                          </Truncate>
-                        </td>
-                        <td className="max-w-[260px] px-4 py-3">
-                          <Truncate>{row.email || "—"}</Truncate>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {row.phone || "—"}
-                        </td>
-                        <td className="max-w-[160px] px-4 py-3">
-                          <Truncate>{row.city || "—"}</Truncate>
-                        </td>
-                        <td className="max-w-[100px] px-4 py-3">
-                          <Truncate>{row.state || "—"}</Truncate>
-                        </td>
-                        <td className="px-4 py-3">{row.status}</td>
-                      </tr>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              <Pager
-                page={previewCurrent}
-                setPage={setPreviewPage}
-                size={previewSize}
-                setSize={(value) => {
-                  setPreviewSize(value);
-                  setPreviewPage(1);
-                }}
-                count={rows.length}
-                noun="leads"
-              />
-            </Panel>
-          </div>
+            <div className="min-w-0 overflow-x-auto">
+              <Table>
+                <TableHeader
+                  headers={[
+                    "Full name",
+                    "Phone",
+                    "Email",
+                    "City",
+                    "State",
+                    "Status",
+                  ]}
+                />
+                <TableBody
+                  rows={previewVisible}
+                  getKey={(row) => rows.indexOf(row)}
+                >
+                  {(row) => (
+                    <tr className="border-t border-[#E8EEE0]">
+                      <td className="max-w-[240px] px-4 py-3 font-semibold">
+                        <Truncate>
+                          {[row.firstName, row.lastName]
+                            .filter(Boolean)
+                            .join(" ") || "—"}
+                        </Truncate>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.phone || "—"}
+                      </td>
+                      <td className="max-w-[260px] px-4 py-3">
+                        <Truncate>{row.email || "—"}</Truncate>
+                      </td>
+                      <td className="max-w-[160px] px-4 py-3">
+                        <Truncate>{row.city || "—"}</Truncate>
+                      </td>
+                      <td className="max-w-[100px] px-4 py-3">
+                        <Truncate>{row.state || "—"}</Truncate>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Pill
+                          tone={
+                            row.status === "lost"
+                              ? "danger"
+                              : row.status === "new"
+                                ? "neutral"
+                                : "good"
+                          }
+                        >
+                          {row.status}
+                        </Pill>
+                      </td>
+                    </tr>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <Pager
+              page={previewCurrent}
+              setPage={setPreviewPage}
+              size={previewSize}
+              setSize={(value) => {
+                setPreviewSize(value);
+                setPreviewPage(1);
+              }}
+              count={rows.length}
+              noun="leads"
+            />
+          </Panel>
         )}
         <fieldset className="space-y-2">
           <legend className="font-semibold">If an email already exists</legend>
