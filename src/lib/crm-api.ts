@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { chunkImportRows, type ImportRow } from "@/lib/import-leads";
+
+export type LeadImportResult = {
+  created: number;
+  updated: number;
+  skipped: number;
+};
 
 /**
  * Fetches one JSON endpoint and returns the parsed body.
@@ -28,6 +35,27 @@ export async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
     );
   }
   return result as T;
+}
+
+export async function importLeadsInBatches(
+  rows: ImportRow[],
+  duplicate: "skip" | "update",
+  onBatch?: (current: number, total: number) => void,
+): Promise<LeadImportResult> {
+  const chunks = chunkImportRows(rows);
+  const totals: LeadImportResult = { created: 0, updated: 0, skipped: 0 };
+  for (let index = 0; index < chunks.length; index++) {
+    onBatch?.(index + 1, chunks.length);
+    const response = await callApi<LeadImportResult>("/api/lead/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows: chunks[index], duplicate }),
+    });
+    totals.created += response.created;
+    totals.updated += response.updated;
+    totals.skipped += response.skipped;
+  }
+  return totals;
 }
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Table, TableBody, TableHeader } from "@/components/crm/shared";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,8 +11,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { callApi } from "@/lib/crm-api";
+import { callApi, importLeadsInBatches } from "@/lib/crm-api";
 import {
+  chunkImportRows,
   csvColumns,
   downloadLeadTemplate,
   type ImportRow,
@@ -148,6 +150,10 @@ export function ImportLeadsDialog({
   const [duplicate, setDuplicate] = useState<"skip" | "update">("skip");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importBatch, setImportBatch] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [result, setResult] = useState("");
   async function selectFile(file?: File) {
     setRows([]);
@@ -166,16 +172,13 @@ export function ImportLeadsDialog({
   async function importRows() {
     setBusy(true);
     setError("");
+    setImportBatch(null);
     try {
-      const response = await callApi<{
-        created: number;
-        updated: number;
-        skipped: number;
-      }>("/api/lead/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows, duplicate }),
-      });
+      const response = await importLeadsInBatches(
+        rows,
+        duplicate,
+        (current, total) => setImportBatch({ current, total }),
+      );
       setResult(
         `${response.created} added, ${response.updated} updated, ${response.skipped} skipped.`,
       );
@@ -187,8 +190,10 @@ export function ImportLeadsDialog({
       );
     } finally {
       setBusy(false);
+      setImportBatch(null);
     }
   }
+  const batchTotal = chunkImportRows(rows).length;
   return (
     <Dialog
       open={open}
@@ -222,40 +227,40 @@ export function ImportLeadsDialog({
               Preview · {fileName} ({rows.length} leads)
             </h3>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[650px] text-left text-sm">
-                <thead>
-                  <tr>
-                    {[
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader
+                    headers={[
                       "Full name",
                       "Email",
                       "Phone",
                       "City",
                       "State",
                       "Status",
-                    ].map((label) => (
-                      <th key={label} className="border-b p-2">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(0, 3).map((row, index) => (
-                    <tr key={`${row.email ?? "row"}-${index}`}>
-                      <td className="p-2">
-                        {[row.firstName, row.lastName]
-                          .filter(Boolean)
-                          .join(" ")}
-                      </td>
-                      <td className="p-2">{row.email}</td>
-                      <td className="p-2">{row.phone}</td>
-                      <td className="p-2">{row.city}</td>
-                      <td className="p-2">{row.state}</td>
-                      <td className="p-2">{row.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    ]}
+                  />
+                  <TableBody
+                    rows={rows.slice(0, 3)}
+                    getKey={(row) => {
+                      const email = row.email;
+                      return email
+                        ? email
+                        : `${row.firstName ?? ""} ${row.lastName ?? ""}`;
+                    }}
+                  >
+                    {(row) => (
+                      <tr className="border-t border-[#E8EEE0]">
+                        <td className="px-4 py-3">
+                          {[row.firstName, row.lastName]
+                            .filter(Boolean)
+                            .join(" ")}
+                        </td>
+                        {/* ...other cells... */}
+                      </tr>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
         )}
@@ -295,7 +300,13 @@ export function ImportLeadsDialog({
               Close
             </Button>
             <Button disabled={!rows.length || busy} onClick={importRows}>
-              {busy ? "Importing…" : `Import ${rows.length} leads`}
+              {busy && importBatch && importBatch.total > 1
+                ? `Importing batch ${importBatch.current} of ${importBatch.total}…`
+                : busy
+                  ? "Importing…"
+                  : batchTotal > 1
+                    ? `Import ${rows.length} leads (${batchTotal} batches)`
+                    : `Import ${rows.length} leads`}
             </Button>
           </div>
         </div>
