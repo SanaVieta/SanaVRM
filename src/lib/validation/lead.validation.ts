@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LEAD_STATUSES } from "@/lib/db/schemas/lead.schema";
+import { MAX_IMPORT_ROWS } from "@/lib/lead-import-limits";
 import { uuidSchema } from "@/lib/validation/common";
 import { idParamSchema } from "@/lib/validation/param.validation";
 
@@ -68,7 +69,7 @@ export const importLeadSchema = z.object({
         .extend({ createdAt: z.iso.datetime().optional() }),
     )
     .min(1)
-    .max(1000),
+    .max(MAX_IMPORT_ROWS),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;
