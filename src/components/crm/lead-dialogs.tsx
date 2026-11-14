@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Table, TableBody, TableHeader } from "@/components/crm/shared";
+import {
+  Pager,
+  Panel,
+  Table,
+  TableBody,
+  TableHeader,
+  Truncate,
+} from "@/components/crm/shared";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -155,10 +162,13 @@ export function ImportLeadsDialog({
     total: number;
   } | null>(null);
   const [result, setResult] = useState("");
+  const [previewPage, setPreviewPage] = useState(1);
+  const [previewSize, setPreviewSize] = useState(5);
   async function selectFile(file?: File) {
     setRows([]);
     setError("");
     setResult("");
+    setPreviewPage(1);
     setFileName(file?.name ?? "");
     if (!file) return;
     try {
@@ -194,6 +204,14 @@ export function ImportLeadsDialog({
     }
   }
   const batchTotal = chunkImportRows(rows).length;
+  const previewCurrent = Math.min(
+    previewPage,
+    Math.max(1, Math.ceil(rows.length / previewSize)),
+  );
+  const previewVisible = rows.slice(
+    (previewCurrent - 1) * previewSize,
+    previewCurrent * previewSize,
+  );
   return (
     <Dialog
       open={open}
@@ -226,7 +244,7 @@ export function ImportLeadsDialog({
             <h3 className="mb-2 font-semibold">
               Preview · {fileName} ({rows.length} leads)
             </h3>
-            <div className="overflow-x-auto">
+            <Panel label="Import preview">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader
@@ -240,28 +258,48 @@ export function ImportLeadsDialog({
                     ]}
                   />
                   <TableBody
-                    rows={rows.slice(0, 3)}
-                    getKey={(row) => {
-                      const email = row.email;
-                      return email
-                        ? email
-                        : `${row.firstName ?? ""} ${row.lastName ?? ""}`;
-                    }}
+                    rows={previewVisible}
+                    getKey={(row) => rows.indexOf(row)}
                   >
                     {(row) => (
                       <tr className="border-t border-[#E8EEE0]">
-                        <td className="px-4 py-3">
-                          {[row.firstName, row.lastName]
-                            .filter(Boolean)
-                            .join(" ")}
+                        <td className="max-w-[240px] px-4 py-3 font-semibold">
+                          <Truncate>
+                            {[row.firstName, row.lastName]
+                              .filter(Boolean)
+                              .join(" ") || "—"}
+                          </Truncate>
                         </td>
-                        {/* ...other cells... */}
+                        <td className="max-w-[260px] px-4 py-3">
+                          <Truncate>{row.email || "—"}</Truncate>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.phone || "—"}
+                        </td>
+                        <td className="max-w-[160px] px-4 py-3">
+                          <Truncate>{row.city || "—"}</Truncate>
+                        </td>
+                        <td className="max-w-[100px] px-4 py-3">
+                          <Truncate>{row.state || "—"}</Truncate>
+                        </td>
+                        <td className="px-4 py-3">{row.status}</td>
                       </tr>
                     )}
                   </TableBody>
                 </Table>
               </div>
-            </div>
+              <Pager
+                page={previewCurrent}
+                setPage={setPreviewPage}
+                size={previewSize}
+                setSize={(value) => {
+                  setPreviewSize(value);
+                  setPreviewPage(1);
+                }}
+                count={rows.length}
+                noun="leads"
+              />
+            </Panel>
           </div>
         )}
         <fieldset className="space-y-2">
