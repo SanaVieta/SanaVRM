@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseLeadCsv, splitName } from "@/lib/import-leads";
+import {
+  chunkImportRows,
+  MAX_IMPORT_ROWS,
+  parseLeadCsv,
+  splitName,
+} from "@/lib/import-leads";
 
 const header = "Full Name,Phone,Email,City,State,Status,Creation Date\n";
 
@@ -25,6 +30,26 @@ describe("lead CSV import", () => {
         createdAt: "2026-11-01T00:00:00.000Z",
       },
     ]);
+  });
+
+  it("chunks rows for batched API imports", () => {
+    const rows = Array.from(
+      { length: MAX_IMPORT_ROWS + 1 },
+      (_, index) => index,
+    );
+    expect(chunkImportRows(rows)).toEqual([
+      rows.slice(0, MAX_IMPORT_ROWS),
+      rows.slice(MAX_IMPORT_ROWS),
+    ]);
+    expect(chunkImportRows([1, 2, 3])).toEqual([[1, 2, 3]]);
+  });
+
+  it("parses CSV files larger than one import batch", () => {
+    const body = Array.from(
+      { length: MAX_IMPORT_ROWS + 2 },
+      () => "Pat,,pat@example.com,,,new,\n",
+    ).join("");
+    expect(parseLeadCsv(`${header}${body}`)).toHaveLength(MAX_IMPORT_ROWS + 2);
   });
 
   it("rejects missing columns, invalid status and bad email", () => {
