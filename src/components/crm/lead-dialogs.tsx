@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import {
   Pager,
   Panel,
@@ -43,7 +43,7 @@ export function AddLeadDialog({
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  async function submitLead(event: React.ChangeEvent<HTMLFormElement>) {
+  async function submitLead(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
@@ -383,7 +383,7 @@ export function EditLeadDialog({
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  async function saveLead(event: React.ChangeEvent<HTMLFormElement>) {
+  async function saveLead(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!lead) return;
     setBusy(true);
