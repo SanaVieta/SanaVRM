@@ -1,6 +1,15 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
+import {
+  Pager,
+  Panel,
+  Pill,
+  Table,
+  TableBody,
+  TableHeader,
+  Truncate,
+} from "@/components/crm/shared";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,8 +19,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { readApi } from "@/lib/crm-api";
+import { callApi, importLeadsInBatches } from "@/lib/crm-api";
+import { type LeadRecord, leadName } from "@/lib/crm-types";
 import {
+  chunkImportRows,
   csvColumns,
   downloadLeadTemplate,
   type ImportRow,
@@ -32,14 +43,14 @@ export function AddLeadDialog({
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  async function submitLead(event: FormEvent<HTMLFormElement>) {
+  async function submitLead(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
     setBusy(true);
     setError("");
     try {
-      await readApi("/api/lead", {
+      await callApi("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,11 +159,18 @@ export function ImportLeadsDialog({
   const [duplicate, setDuplicate] = useState<"skip" | "update">("skip");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importBatch, setImportBatch] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [result, setResult] = useState("");
+  const [previewPage, setPreviewPage] = useState(1);
+  const [previewSize, setPreviewSize] = useState(5);
   async function selectFile(file?: File) {
     setRows([]);
     setError("");
     setResult("");
+    setPreviewPage(1);
     setFileName(file?.name ?? "");
     if (!file) return;
     try {
@@ -166,16 +184,13 @@ export function ImportLeadsDialog({
   async function importRows() {
     setBusy(true);
     setError("");
+    setImportBatch(null);
     try {
-      const response = await readApi<{
-        created: number;
-        updated: number;
-        skipped: number;
-      }>("/api/lead/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows, duplicate }),
-      });
+      const response = await importLeadsInBatches(
+        rows,
+        duplicate,
+        (current, total) => setImportBatch({ current, total }),
+      );
       setResult(
         `${response.created} added, ${response.updated} updated, ${response.skipped} skipped.`,
       );
@@ -187,8 +202,18 @@ export function ImportLeadsDialog({
       );
     } finally {
       setBusy(false);
+      setImportBatch(null);
     }
   }
+  const batchTotal = chunkImportRows(rows).length;
+  const previewCurrent = Math.min(
+    previewPage,
+    Math.max(1, Math.ceil(rows.length / previewSize)),
+  );
+  const previewVisible = rows.slice(
+    (previewCurrent - 1) * previewSize,
+    previewCurrent * previewSize,
+  );
   return (
     <Dialog
       open={open}
@@ -196,7 +221,7 @@ export function ImportLeadsDialog({
         if (!value) onClose();
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] flex-col gap-4 overflow-y-auto p-4 sm:max-w-[52rem]">
         <DialogHeader>
           <DialogTitle>Import leads from CSV</DialogTitle>
           <DialogDescription>
@@ -217,47 +242,82 @@ export function ImportLeadsDialog({
           Columns: {csvColumns.join(", ")}. Status: {statuses.join(", ")}.
         </p>
         {rows.length > 0 && (
-          <div className="min-w-0">
-            <h3 className="mb-2 font-semibold">
-              Preview · {fileName} ({rows.length} leads)
+          <Panel label="Import preview">
+            <h3
+              title={`Preview · ${fileName} (${rows.length} leads)`}
+              className="border-b border-[#DFE6D6] px-5 py-4 text-lg font-bold text-[#124A0A]"
+            >
+              <span className="block truncate">
+                Preview · {fileName} ({rows.length} leads)
+              </span>
             </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[650px] text-left text-sm">
-                <thead>
-                  <tr>
-                    {[
-                      "Full name",
-                      "Email",
-                      "Phone",
-                      "City",
-                      "State",
-                      "Status",
-                    ].map((label) => (
-                      <th key={label} className="border-b p-2">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(0, 3).map((row, index) => (
-                    <tr key={`${row.email ?? "row"}-${index}`}>
-                      <td className="p-2">
-                        {[row.firstName, row.lastName]
-                          .filter(Boolean)
-                          .join(" ")}
+            <div className="min-w-0 overflow-x-auto">
+              <Table>
+                <TableHeader
+                  headers={[
+                    "Full name",
+                    "Phone",
+                    "Email",
+                    "City",
+                    "State",
+                    "Status",
+                  ]}
+                />
+                <TableBody
+                  rows={previewVisible}
+                  getKey={(row) => rows.indexOf(row)}
+                >
+                  {(row) => (
+                    <tr className="border-t border-[#E8EEE0]">
+                      <td className="max-w-[240px] px-4 py-3 font-semibold">
+                        <Truncate>
+                          {[row.firstName, row.lastName]
+                            .filter(Boolean)
+                            .join(" ") || "—"}
+                        </Truncate>
                       </td>
-                      <td className="p-2">{row.email}</td>
-                      <td className="p-2">{row.phone}</td>
-                      <td className="p-2">{row.city}</td>
-                      <td className="p-2">{row.state}</td>
-                      <td className="p-2">{row.status}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.phone || "—"}
+                      </td>
+                      <td className="max-w-[260px] px-4 py-3">
+                        <Truncate>{row.email || "—"}</Truncate>
+                      </td>
+                      <td className="max-w-[160px] px-4 py-3">
+                        <Truncate>{row.city || "—"}</Truncate>
+                      </td>
+                      <td className="max-w-[100px] px-4 py-3">
+                        <Truncate>{row.state || "—"}</Truncate>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Pill
+                          tone={
+                            row.status === "lost"
+                              ? "danger"
+                              : row.status === "new"
+                                ? "neutral"
+                                : "good"
+                          }
+                        >
+                          {row.status}
+                        </Pill>
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          </div>
+            <Pager
+              page={previewCurrent}
+              setPage={setPreviewPage}
+              size={previewSize}
+              setSize={(value) => {
+                setPreviewSize(value);
+                setPreviewPage(1);
+              }}
+              count={rows.length}
+              noun="leads"
+            />
+          </Panel>
         )}
         <fieldset className="space-y-2">
           <legend className="font-semibold">If an email already exists</legend>
@@ -295,9 +355,208 @@ export function ImportLeadsDialog({
               Close
             </Button>
             <Button disabled={!rows.length || busy} onClick={importRows}>
-              {busy ? "Importing…" : `Import ${rows.length} leads`}
+              {busy && importBatch && importBatch.total > 1
+                ? `Importing batch ${importBatch.current} of ${importBatch.total}…`
+                : busy
+                  ? "Importing…"
+                  : batchTotal > 1
+                    ? `Import ${rows.length} leads (${batchTotal} batches)`
+                    : `Import ${rows.length} leads`}
             </Button>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function EditLeadDialog({
+  open,
+  onClose,
+  lead,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lead: LeadRecord | null;
+  onSaved: () => void;
+}) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function saveLead(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!lead) return;
+    setBusy(true);
+    setError("");
+    const values = new FormData(event.currentTarget);
+    try {
+      await callApi(`/api/lead/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: String(values.get("firstName") ?? "") || null,
+          lastName: String(values.get("lastName") ?? "") || null,
+          phone: String(values.get("phone") ?? "") || null,
+          email: String(values.get("email") ?? "") || null,
+          city: String(values.get("city") ?? "") || null,
+          state: String(values.get("state") ?? "") || null,
+          status: values.get("status"),
+        }),
+      });
+      onClose();
+      onSaved();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Could not update lead.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit lead</DialogTitle>
+          <DialogDescription>
+            Update the lead’s contact details and status.
+          </DialogDescription>
+        </DialogHeader>
+        {lead && (
+          <form
+            key={lead.id}
+            className="grid gap-3 sm:grid-cols-2"
+            onSubmit={saveLead}
+          >
+            {(
+              [
+                "firstName",
+                "lastName",
+                "phone",
+                "email",
+                "city",
+                "state",
+              ] as const
+            ).map((field) => (
+              <label
+                key={field}
+                htmlFor={`edit-${field}-${lead.id}`}
+                className="capitalize"
+              >
+                {field.replace(/([A-Z])/g, " $1")}
+                <Input
+                  id={`edit-${field}-${lead.id}`}
+                  name={field}
+                  defaultValue={lead[field] ?? ""}
+                  type={field === "email" ? "email" : "text"}
+                  className="mt-1 h-11"
+                />
+              </label>
+            ))}
+            <label htmlFor={`edit-status-${lead.id}`}>
+              Status
+              <select
+                id={`edit-status-${lead.id}`}
+                name="status"
+                defaultValue={lead.status}
+                className="mt-1 h-11 w-full rounded-lg border border-[#B9C7AC] bg-white px-3"
+              >
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="sm:col-span-2">
+              {error && (
+                <p role="alert" className="text-[#8A2A1B]">
+                  {error}
+                </p>
+              )}
+              <div className="mt-3 flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={busy}>
+                  {busy ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function DeleteLeadDialog({
+  open,
+  onClose,
+  lead,
+  onDeleted,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lead: LeadRecord | null;
+  onDeleted: () => void;
+}) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function confirmDelete() {
+    if (!lead) return;
+    setBusy(true);
+    setError("");
+    try {
+      await callApi(`/api/lead/${lead.id}`, { method: "DELETE" });
+      onClose();
+      onDeleted();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Could not delete lead.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete lead</DialogTitle>
+          <DialogDescription>
+            {lead
+              ? `Are you sure you want to delete ${leadName(lead)}? This cannot be undone.`
+              : "Are you sure you want to delete this lead? This cannot be undone."}
+          </DialogDescription>
+        </DialogHeader>
+        {error && (
+          <p role="alert" className="text-[#8A2A1B]">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="bg-red-500 text-white hover:bg-red-600"
+            disabled={busy}
+            onClick={() => void confirmDelete()}
+          >
+            {busy ? "Deleting…" : "Delete lead"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

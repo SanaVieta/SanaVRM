@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/lead/import/route";
+import { MAX_IMPORT_ROWS } from "@/lib/lead-import-limits";
 
 const repo = vi.hoisted(() => ({
   findOne: vi.fn(),
@@ -88,6 +89,15 @@ describe("POST /api/lead/import", () => {
       (await POST(importRequest([{ status: "processed" }], "skip"))).status,
     ).toBe(400);
     expect((await POST(importRequest([], "update"))).status).toBe(400);
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects more than the per-request row limit", async () => {
+    const rows = Array.from({ length: MAX_IMPORT_ROWS + 1 }, () => ({
+      email: "too-many@example.com",
+      status: "new",
+    }));
+    expect((await POST(importRequest(rows, "skip"))).status).toBe(400);
     expect(repo.save).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { type SubmitEvent, useCallback, useEffect, useState } from "react";
+import {
+  DeleteLeadDialog,
+  EditLeadDialog,
+} from "@/components/crm/lead-dialogs";
 import {
   DataState,
   PageHeader,
@@ -11,16 +16,8 @@ import {
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { readApi, readCollection } from "@/lib/crm-api";
+import { callApi, readCollection } from "@/lib/crm-api";
 import {
   formatDate,
   formatMoney,
@@ -29,8 +26,6 @@ import {
   type NoteRecord,
   type OrderRecord,
 } from "@/lib/crm-types";
-
-const statuses = ["new", "contacted", "qualified", "converted", "lost"];
 
 function NoteItem({ note }: { note: NoteRecord }) {
   const [expanded, setExpanded] = useState(false);
@@ -57,7 +52,9 @@ function NoteItem({ note }: { note: NoteRecord }) {
 }
 
 export function LeadDetail({ id }: { id: string }) {
+  const router = useRouter();
   const [lead, setLead] = useState<LeadRecord | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,34 +70,35 @@ export function LeadDetail({ id }: { id: string }) {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    Promise.all([
-      readApi<LeadRecord>(`/api/lead/${id}`, { signal: controller.signal }),
-      readApi<NoteRecord[]>(`/api/lead/${id}/notes`, {
-        signal: controller.signal,
-      }),
-      readCollection<OrderRecord>("/api/order", controller.signal),
-    ])
-      .then(([leadData, noteData, orderData]) => {
+    void (async () => {
+      try {
+        const [leadData, noteData, orderData] = await Promise.all([
+          callApi<LeadRecord>(`/api/lead/${id}`, { signal: controller.signal }),
+          callApi<NoteRecord[]>(`/api/lead/${id}/notes`, {
+            signal: controller.signal,
+          }),
+          readCollection<OrderRecord>("/api/order", controller.signal),
+        ]);
         setLead(leadData);
         setNotes(noteData);
         setOrders(orderData);
         setLoading(false);
-      })
-      .catch((cause: unknown) => {
+      } catch (cause: unknown) {
         if (controller.signal.aborted) return;
         console.error("Could not load lead detail", cause);
         setError("Could not load lead details. Try again.");
         setLoading(false);
-      });
+      }
+    })();
     return () => controller.abort();
   }, [id, revision]);
 
-  async function saveNote(event: FormEvent<HTMLFormElement>) {
+  async function saveNote(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setActionError("");
     try {
-      await readApi(`/api/lead/${id}/notes`, {
+      await callApi(`/api/lead/${id}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: noteText }),
@@ -110,36 +108,6 @@ export function LeadDetail({ id }: { id: string }) {
     } catch (cause) {
       setActionError(
         cause instanceof Error ? cause.message : "Could not save note.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveLead(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setActionError("");
-    const values = new FormData(event.currentTarget);
-    try {
-      await readApi(`/api/lead/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: String(values.get("firstName") ?? "") || null,
-          lastName: String(values.get("lastName") ?? "") || null,
-          phone: String(values.get("phone") ?? "") || null,
-          email: String(values.get("email") ?? "") || null,
-          city: String(values.get("city") ?? "") || null,
-          state: String(values.get("state") ?? "") || null,
-          status: values.get("status"),
-        }),
-      });
-      setEditing(false);
-      refresh();
-    } catch (cause) {
-      setActionError(
-        cause instanceof Error ? cause.message : "Could not update lead.",
       );
     } finally {
       setBusy(false);
@@ -164,14 +132,25 @@ export function LeadDetail({ id }: { id: string }) {
             title={leadName(lead)}
             description={`${lead.status} · Created ${formatDate(lead.createdAt)}`}
             actions={
-              <Button
-                onClick={() => {
-                  setActionError("");
-                  setEditing(true);
-                }}
-              >
-                Edit lead
-              </Button>
+              <>
+                <Button
+                  onClick={() => {
+                    setActionError("");
+                    setEditing(true);
+                  }}
+                >
+                  Edit lead
+                </Button>
+                <Button
+                  className="bg-red-500 text-white hover:bg-red-600"
+                  onClick={() => {
+                    setActionError("");
+                    setDeleteConfirmOpen(true);
+                  }}
+                >
+                  Delete lead
+                </Button>
+              </>
             }
           />
           <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
@@ -317,81 +296,18 @@ export function LeadDetail({ id }: { id: string }) {
           </div>
         </>
       )}
-      <Dialog
+      <EditLeadDialog
         open={editing}
-        onOpenChange={(value) => {
-          if (!value) setEditing(false);
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit lead</DialogTitle>
-            <DialogDescription>
-              Update the lead’s contact details and status.
-            </DialogDescription>
-          </DialogHeader>
-          {lead && (
-            <form className="grid gap-3 sm:grid-cols-2" onSubmit={saveLead}>
-              {(
-                [
-                  "firstName",
-                  "lastName",
-                  "phone",
-                  "email",
-                  "city",
-                  "state",
-                ] as const
-              ).map((field) => (
-                <label
-                  key={field}
-                  htmlFor={`edit-${field}`}
-                  className="capitalize"
-                >
-                  {field.replace(/([A-Z])/g, " $1")}
-                  <Input
-                    id={`edit-${field}`}
-                    name={field}
-                    defaultValue={lead[field] ?? ""}
-                    type={field === "email" ? "email" : "text"}
-                    className="mt-1 h-11"
-                  />
-                </label>
-              ))}
-              <label>
-                Status
-                <select
-                  name="status"
-                  defaultValue={lead.status}
-                  className="mt-1 h-11 w-full rounded-lg border border-[#B9C7AC] bg-white px-3"
-                >
-                  {statuses.map((status) => (
-                    <option key={status}>{status}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="sm:col-span-2">
-                {actionError && (
-                  <p role="alert" className="text-[#8A2A1B]">
-                    {actionError}
-                  </p>
-                )}
-                <div className="mt-3 flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditing(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={busy}>
-                    {busy ? "Saving…" : "Save changes"}
-                  </Button>
-                </div>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+        onClose={() => setEditing(false)}
+        lead={lead}
+        onSaved={refresh}
+      />
+      <DeleteLeadDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        lead={lead}
+        onDeleted={() => router.push("/")}
+      />
     </Shell>
   );
 }

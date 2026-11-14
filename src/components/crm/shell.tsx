@@ -1,15 +1,9 @@
 "use client";
-
-import { Box, ShoppingCart, Users } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-
-const navigation = [
-  { href: "/", label: "Leads", icon: Users },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/products", label: "Products", icon: Box },
-];
+import { routes } from "@/lib/client-routes";
 
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -18,15 +12,16 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="flex shrink-0 flex-col border-b border-[#DFE6D6] bg-white p-4 md:min-h-screen md:w-[248px] md:border-r md:border-b-0 md:px-4 md:py-6">
         <Link
           href="/"
-          className="mb-5 inline-flex items-baseline gap-0.5 px-3 text-[25px] font-bold tracking-[-.065em] text-[#1B6510] md:mb-8"
+          className="mb-5 inline-flex items-center gap-0.5 px-3 text-[25px] font-bold tracking-[-.065em] text-[#1B6510] md:mb-8"
         >
-          Sana<span className="text-[#6DA245]">Vieta</span>
+          <Image src="/icon.png" alt="SanaVieta CRM" width={40} height={40} />
+          Sana<span className="text-[#6DA245]">Vrm</span>
         </Link>
         <nav
           aria-label="Main navigation"
           className="flex gap-1 overflow-x-auto md:flex-col"
         >
-          {navigation.map(({ href, label, icon: Icon }) => {
+          {routes.map(({ href, label, icon: Icon }) => {
             const active =
               href === "/"
                 ? pathname === "/" || pathname.startsWith("/leads/")
@@ -43,6 +38,7 @@ export function Shell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        {/* TODO: Add user avatar and name */}
         <div className="mt-auto hidden border-t border-[#DFE6D6] pt-5 md:flex md:items-center md:gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1B6510] text-sm font-semibold text-white">
             SV

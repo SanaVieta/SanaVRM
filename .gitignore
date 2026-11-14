@@ -42,3 +42,8 @@ next-env.d.ts
 
 .agents/
 .vitest/
+.playwright-mcp/
+
+# Supabase CLI local state
+supabase/.branches/
+supabase/.temp/

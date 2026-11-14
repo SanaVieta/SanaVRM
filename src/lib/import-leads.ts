@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 import { z } from "zod";
 import type { LeadStatus } from "@/lib/crm-types";
+import { MAX_IMPORT_ROWS } from "@/lib/lead-import-limits";
 
 export const csvColumns = [
   "Full Name",
@@ -11,6 +12,9 @@ export const csvColumns = [
   "Status",
   "Creation Date",
 ] as const;
+
+export { MAX_IMPORT_ROWS } from "@/lib/lead-import-limits";
+
 const statuses: LeadStatus[] = [
   "new",
   "contacted",
@@ -61,8 +65,6 @@ export function parseLeadCsv(text: string): ImportRow[] {
   );
   if (missing.length) throw new Error(`Missing columns: ${missing.join(", ")}`);
   if (!parsed.data.length) throw new Error("The CSV has no leads to import.");
-  if (parsed.data.length > 1000)
-    throw new Error("Import at most 1,000 leads at a time.");
   return parsed.data.map((row, index) => {
     const status = (row.Status ?? "").trim().toLowerCase();
     if (!statuses.includes(status as LeadStatus))
@@ -86,6 +88,22 @@ export function parseLeadCsv(text: string): ImportRow[] {
       ...(createdAt ? { createdAt: createdAt.toISOString() } : {}),
     };
   });
+}
+/**
+ * Chunks an array of rows into smaller arrays of a given size
+ * @param rows - The rows to chunk.
+ * @param batchSize - The size of each chunk. Defaults to the maximum number of rows allowed per import.
+ * @returns The chunks of rows.
+ */
+export function chunkImportRows<T>(
+  rows: T[],
+  batchSize = MAX_IMPORT_ROWS,
+): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < rows.length; i += batchSize) {
+    chunks.push(rows.slice(i, i + batchSize));
+  }
+  return chunks;
 }
 
 export function downloadLeadTemplate(): void {

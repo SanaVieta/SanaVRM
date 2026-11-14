@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 export function Truncate({
@@ -121,8 +122,9 @@ export function DataState({
 }) {
   if (loading)
     return (
-      <output className="rounded-[14px] border border-[#DFE6D6] bg-white p-10 text-center text-[#4F5E4B]">
-        Loading data…
+      <output className="fixed top-1/2 left-1/2 z-10 flex w-max max-w-[calc(100vw-2.5rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-3 rounded-[14px] border border-[#DFE6D6] bg-white p-10 text-center text-[#4F5E4B] md:left-[calc(50%+124px)]">
+        <LoaderCircle className="animate-spin" aria-hidden="true" />
+        Loading…
       </output>
     );
   if (error)
@@ -136,6 +138,59 @@ export function DataState({
       </div>
     );
   return null;
+}
+
+const PAGER_EDGE_COUNT = 5;
+
+export type PagerPageItem =
+  | { kind: "page"; page: number }
+  | { kind: "ellipsis"; id: "leading" | "trailing" };
+
+export function buildPagerPageItems(
+  current: number,
+  pages: number,
+): PagerPageItem[] {
+  if (pages <= 1) {
+    return [{ kind: "page", page: 1 }];
+  }
+  if (pages <= 7) {
+    return Array.from({ length: pages }, (_, index) => ({
+      kind: "page" as const,
+      page: index + 1,
+    }));
+  }
+
+  if (current <= PAGER_EDGE_COUNT) {
+    return [
+      ...Array.from({ length: PAGER_EDGE_COUNT }, (_, index) => ({
+        kind: "page" as const,
+        page: index + 1,
+      })),
+      { kind: "ellipsis", id: "trailing" },
+      { kind: "page", page: pages },
+    ];
+  }
+
+  if (current >= pages - (PAGER_EDGE_COUNT - 1)) {
+    return [
+      { kind: "page", page: 1 },
+      { kind: "ellipsis", id: "leading" },
+      ...Array.from({ length: PAGER_EDGE_COUNT }, (_, index) => ({
+        kind: "page" as const,
+        page: pages - (PAGER_EDGE_COUNT - 1) + index,
+      })),
+    ];
+  }
+
+  return [
+    { kind: "page", page: 1 },
+    { kind: "ellipsis", id: "leading" },
+    { kind: "page", page: current - 1 },
+    { kind: "page", page: current },
+    { kind: "page", page: current + 1 },
+    { kind: "ellipsis", id: "trailing" },
+    { kind: "page", page: pages },
+  ];
 }
 
 export function Pager({
@@ -190,17 +245,25 @@ export function Pager({
         >
           Previous
         </Button>
-        {Array.from({ length: pages }, (_, index) => index + 1).map(
-          (number) => (
-            <Button
-              key={number}
-              size="icon"
-              variant={current === number ? "default" : "outline"}
-              aria-label={`Page ${number}`}
-              aria-current={current === number ? "page" : undefined}
-              onClick={() => setPage(number)}
+        {buildPagerPageItems(current, pages).map((item) =>
+          item.kind === "ellipsis" ? (
+            <span
+              key={`ellipsis-${item.id}`}
+              aria-hidden="true"
+              className="px-1 text-[#4F5E4B]"
             >
-              {number}
+              …
+            </span>
+          ) : (
+            <Button
+              key={item.page}
+              size="icon"
+              variant={current === item.page ? "default" : "outline"}
+              aria-label={`Page ${item.page}`}
+              aria-current={current === item.page ? "page" : undefined}
+              onClick={() => setPage(item.page)}
+            >
+              {item.page}
             </Button>
           ),
         )}
@@ -239,5 +302,45 @@ export function Filters({
         </Button>
       ))}
     </fieldset>
+  );
+}
+
+export function Table({ children }: { children: ReactNode }) {
+  return (
+    <table className="w-full min-w-[800px] text-left text-[15px]">
+      {children}
+    </table>
+  );
+}
+
+export function TableHeader({ headers }: { headers: string[] }) {
+  return (
+    <thead className="bg-[#F5F7F1] text-xs font-bold tracking-wide text-[#3E4D3A] uppercase">
+      <tr>
+        {headers.map((label) => (
+          <th scope="col" key={label} className="px-4 py-3">
+            {label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+export function TableBody<T>({
+  rows,
+  getKey,
+  children,
+}: {
+  rows: T[];
+  getKey: (row: T) => string | number;
+  children: (row: T) => ReactNode;
+}) {
+  return (
+    <tbody>
+      {rows.map((row) => (
+        <Fragment key={getKey(row)}>{children(row)}</Fragment>
+      ))}
+    </tbody>
   );
 }

@@ -9,6 +9,9 @@ import {
   Panel,
   Pill,
   Summary,
+  Table,
+  TableBody,
+  TableHeader,
   Truncate,
 } from "@/components/crm/shared";
 import { Shell } from "@/components/crm/shell";
@@ -104,78 +107,67 @@ export default function OrdersPage() {
               </label>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-[15px]">
-                <thead className="bg-[#F5F7F1] text-xs font-bold tracking-wide text-[#3E4D3A] uppercase">
-                  <tr>
-                    {[
-                      "Order",
-                      "Customer",
-                      "Date",
-                      "Payment",
-                      "Fulfillment",
-                      "Total",
-                    ].map((label) => (
-                      <th scope="col" key={label} className="px-5 py-3">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {matches
-                    .slice((current - 1) * size, current * size)
-                    .map((order) => (
-                      <tr
-                        className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]"
-                        key={order.id}
-                      >
-                        <td className="px-5 py-3 font-semibold text-[#124A0A]">
-                          #{order.shopifyOrderId}
-                        </td>
-                        <td className="max-w-[260px] px-5 py-3">
-                          <Truncate>
-                            {[
-                              order.customer?.firstName,
-                              order.customer?.lastName,
-                            ]
-                              .filter(Boolean)
-                              .join(" ") ||
-                              order.customer?.email ||
-                              "—"}
-                          </Truncate>
-                        </td>
-                        <td className="px-5 py-3 whitespace-nowrap">
-                          {formatDate(order.createdAt)}
-                        </td>
-                        <td className="px-5 py-3">
-                          <Pill
-                            tone={
-                              order.financialStatus === "paid"
-                                ? "good"
-                                : "warning"
-                            }
-                          >
-                            {order.financialStatus ?? "Unknown"}
-                          </Pill>
-                        </td>
-                        <td className="px-5 py-3">
-                          <Pill
-                            tone={
-                              order.fulfillmentStatus === "fulfilled"
-                                ? "good"
-                                : "warning"
-                            }
-                          >
-                            {order.fulfillmentStatus ?? "Unfulfilled"}
-                          </Pill>
-                        </td>
-                        <td className="px-5 py-3">
-                          {formatMoney(order.totalPrice)}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <Table>
+                <TableHeader
+                  headers={[
+                    "Order",
+                    "Customer",
+                    "Date",
+                    "Payment",
+                    "Fulfillment",
+                    "Total",
+                  ]}
+                />
+                <TableBody
+                  rows={matches.slice((current - 1) * size, current * size)}
+                  getKey={(order) => order.id}
+                >
+                  {(order) => (
+                    <tr className="border-t border-[#E8EEE0] hover:bg-[#F3F8EC]">
+                      <td className="px-5 py-3 font-semibold text-[#124A0A]">
+                        #{order.shopifyOrderId}
+                      </td>
+                      <td className="max-w-[260px] px-5 py-3">
+                        <Truncate>
+                          {[order.customer?.firstName, order.customer?.lastName]
+                            .filter(Boolean)
+                            .join(" ") ||
+                            order.customer?.email ||
+                            "—"}
+                        </Truncate>
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        {formatDate(order.createdAt)}
+                      </td>
+                      <td className="px-5 py-3">
+                        <Pill
+                          tone={
+                            order.financialStatus === "paid"
+                              ? "good"
+                              : "warning"
+                          }
+                        >
+                          {order.financialStatus ?? "Unknown"}
+                        </Pill>
+                      </td>
+                      <td className="px-5 py-3">
+                        <Pill
+                          tone={
+                            order.fulfillmentStatus === "fulfilled"
+                              ? "good"
+                              : "warning"
+                          }
+                        >
+                          {order.fulfillmentStatus ?? "Unfulfilled"}
+                        </Pill>
+                      </td>
+                      <td className="px-5 py-3">
+                        {formatMoney(order.totalPrice)}
+                      </td>
+                    </tr>
+                  )}
+                </TableBody>
+              </Table>
             </div>
             {matches.length === 0 && (
               <p className="p-10 text-center text-[#4F5E4B]">
