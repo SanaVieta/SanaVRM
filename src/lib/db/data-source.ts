@@ -2,6 +2,16 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import schemas from "./schemas";
 
+function postgresUsesSsl(): boolean {
+  if (process.env.POSTGRES_SSL === "true") {
+    return true;
+  }
+  if (process.env.POSTGRES_SSL === "false") {
+    return false;
+  }
+  return process.env.POSTGRES_HOST?.includes("supabase.co") === true;
+}
+
 export const AppDataSource = new DataSource({
   type: "postgres",
   host: process.env.POSTGRES_HOST,
@@ -14,4 +24,9 @@ export const AppDataSource = new DataSource({
   entities: schemas,
   subscribers: [],
   migrations: [`${__dirname}/migrations/**/*{.js,.ts}`],
+  ssl: postgresUsesSsl()
+    ? {
+        rejectUnauthorized: false,
+      }
+    : undefined,
 });
