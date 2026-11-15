@@ -99,7 +99,7 @@ export class Lead {
   @UpdateDateColumn({ name: "updated_at", type: "timestamptz" })
   updatedAt!: Date;
 
-  @OneToOne("Customer", (customer: Customer) => customer.lead, {
+  @OneToOne("customers", (customer: Customer) => customer.lead, {
     nullable: true,
     onDelete: "SET NULL",
   })

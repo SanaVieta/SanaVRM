@@ -82,7 +82,7 @@ export class Product {
   syncedAt?: Date | null;
 
   @OneToMany(
-    "InventoryLevel",
+    "inventory_levels",
     (inventoryLevel: InventoryLevel) => inventoryLevel.product,
   )
   inventoryLevels?: InventoryLevel[];

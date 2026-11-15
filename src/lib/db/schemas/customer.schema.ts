@@ -54,9 +54,11 @@ export class Customer {
   @Column("timestamptz", { name: "synced_at", nullable: true })
   syncedAt?: Date | null;
 
-  @OneToOne("Lead", (lead: Lead) => lead.customer)
+  // Table names, not class names. The production bundle shortens class
+  // names, and TypeORM matches a string relation to the table name.
+  @OneToOne("leads", (lead: Lead) => lead.customer)
   lead?: Lead | null;
 
-  @OneToMany("Order", (order: Order) => order.customer)
+  @OneToMany("orders", (order: Order) => order.customer)
   orders?: Order[];
 }

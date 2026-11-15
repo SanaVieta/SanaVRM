@@ -1,3 +1,4 @@
+import "pg";
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import schemas from "./schemas";

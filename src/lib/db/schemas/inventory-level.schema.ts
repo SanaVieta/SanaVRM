@@ -59,7 +59,7 @@ export class InventoryLevel {
   @Column("timestamptz", { name: "synced_at", nullable: true })
   syncedAt?: Date | null;
 
-  @ManyToOne("Product", (product: Product) => product.inventoryLevels, {
+  @ManyToOne("products", (product: Product) => product.inventoryLevels, {
     nullable: false,
     onDelete: "CASCADE",
   })
