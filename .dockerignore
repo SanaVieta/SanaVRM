@@ -1,0 +1,87 @@
+# Dependencies (installed inside Docker, never copied)
+node_modules/
+.pnp/
+.pnp.js
+.pnpm-store/
+
+# Next.js build output (generated during the image build)
+.next/
+out/
+dist/
+build/
+.vercel/
+
+# Environment files (avoid leaking secrets)
+.env
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing (not needed in production)
+coverage/
+.nyc_output/
+__tests__/
+__mocks__/
+jest/
+cypress/
+playwright-report/
+test-results/
+.vitest/
+
+# Debug and log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+.cursor/
+.cursorrules
+.copilot/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker files (reduce build context)
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+compose*.yaml
+
+# Documentation (not needed in the image)
+*.md
+docs/
+
+# CI/CD (not needed in the image)
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+
+# Cache and temporary directories
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+.tmp/
+.temp/
+
+# OS-specific files
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini   

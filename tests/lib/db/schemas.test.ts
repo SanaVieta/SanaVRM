@@ -1,6 +1,6 @@
 import { DataSource } from "typeorm";
 import { describe, expect, it } from "vitest";
-import schemas from "@/lib/db/schemas";
+import schemas, { preserveEntityNames } from "@/lib/db/schemas";
 import { Customer } from "@/lib/db/schemas/customer.schema";
 import { InventoryLevel } from "@/lib/db/schemas/inventory-level.schema";
 import { Lead } from "@/lib/db/schemas/lead.schema";
@@ -206,27 +206,53 @@ describe("db schemas", () => {
     const dataSource = await buildDataSource();
 
     const customers = findTable(dataSource, "customers");
-    expect(
-      customers.relations.some(
-        (relation) => relation.propertyName === "lead" && relation.isOneToOne,
-      ),
-    ).toBe(true);
-    expect(
-      customers.relations.some(
-        (relation) =>
-          relation.propertyName === "orders" && relation.isOneToMany,
-      ),
-    ).toBe(true);
+    const leadRelation = customers.relations.find(
+      (relation) => relation.propertyName === "lead",
+    );
+    expect(leadRelation?.isOneToOne).toBe(true);
+    expect(leadRelation?.inverseEntityMetadata.tableName).toBe("leads");
+    const ordersRelation = customers.relations.find(
+      (relation) => relation.propertyName === "orders",
+    );
+    expect(ordersRelation?.isOneToMany).toBe(true);
+    expect(ordersRelation?.inverseEntityMetadata.tableName).toBe("orders");
 
     const products = findTable(dataSource, "products");
-    expect(
-      products.relations.some(
-        (relation) =>
-          relation.propertyName === "inventoryLevels" && relation.isOneToMany,
-      ),
-    ).toBe(true);
+    const inventoryRelation = products.relations.find(
+      (relation) => relation.propertyName === "inventoryLevels",
+    );
+    expect(inventoryRelation?.isOneToMany).toBe(true);
+    expect(inventoryRelation?.inverseEntityMetadata.tableName).toBe(
+      "inventory_levels",
+    );
 
     expect(Lead.name).toBe("Lead");
+  });
+
+  it("restores entity names after the production bundle shortens them", async () => {
+    for (const entity of schemas) {
+      Object.defineProperty(entity, "name", { value: "u", configurable: true });
+    }
+
+    preserveEntityNames();
+    const dataSource = await buildDataSource();
+
+    expect(
+      dataSource.entityMetadatas
+        .map((entityMetadata) => entityMetadata.name)
+        .sort(),
+    ).toEqual(
+      [
+        "Customer",
+        "Lead",
+        "Order",
+        "Product",
+        "InventoryLevel",
+        "Note",
+        "OrderItem",
+        "Outbox",
+      ].sort(),
+    );
   });
 
   it("requires exactly one target on a note, each with a partial index", async () => {

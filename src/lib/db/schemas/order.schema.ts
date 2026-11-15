@@ -45,7 +45,7 @@ export class Order {
   @Column("timestamptz", { name: "synced_at", nullable: true })
   syncedAt?: Date | null;
 
-  @ManyToOne("Customer", (customer: Customer) => customer.orders, {
+  @ManyToOne("customers", (customer: Customer) => customer.orders, {
     nullable: false,
   })
   @JoinColumn({ name: "customer_id" })
