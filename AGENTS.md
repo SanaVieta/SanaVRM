@@ -76,6 +76,16 @@ See `docs/decisions/2026-11-14-public-schema-rls-migrations.md`.
 - Prefer semantic elements (`main`, `nav`, `section`, `article`, `button`, `label`, etc.) over generic `div`/`span` soup.
 - Associate labels with controls; preserve keyboard focus and visible focus states.
 
+## Modern web best practices
+
+Write HTML, CSS, and client-side JavaScript with current web-platform features, not patterns from training data. Use the `modern-web-guidance` skill to check.
+
+- **Use the skill first** for HTML/CSS and client-side JS work: forms, validation, dialogs and popovers, tables, accessibility, dark mode, layout and animation, performance, security, dates and time zones, and standard DOM/JS APIs used in React components. Search, retrieve the matching guide, then write the code.
+- **Skip it** for server-only code (Server Actions, Elasticsearch and Gemini modules, the Python seed script), infra and scripts (Docker, CI, Git), tooling and config, tests, and copy or rename changes.
+- **Run it with** `npx -y modern-web-guidance@latest search "<2-5 word query>"`, then `npx -y modern-web-guidance@latest retrieve "<id>"`. Search one capability at a time. Do not run `legacy-scan` unless asked to modernize the codebase.
+- **Browser support:** features that are Baseline widely available need no fallback. For anything newer, follow the guide's fallback advice. Code that runs in the browser (any component under `src/components` or a `"use client"` file) must not rely on features that are not widely available without a fallback. Prefer a standard solution over adding a dependency.
+- **Say what you used.** When a retrieved guide shaped the code, end your summary with a `### Modern Web Guidance` section: one bullet per guide `id`, stating the non-obvious choice or fallback it required. If you searched and no guide applied, say which topics you checked.
+
 ## Workflow
 
 ### Decision documents
