@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { chunkImportRows, type ImportRow } from "@/lib/import-leads";
 
 export type LeadImportResult = {
@@ -89,26 +89,59 @@ export async function readCollection<T>(
   }
 }
 
+/** How often open CRM lists silently refetch to pick up Shopify webhook writes. */
+export const POLL_INTERVAL_MS = 20_000;
+
 /**
- * Loads every row from a paginated collection endpoint into React state.
+ * Calls `run` every `intervalMs` while the browser tab is visible, and once
+ * more each time the tab becomes visible again. Hidden tabs are skipped, so
+ * background tabs make no requests.
+ *
+ * @param run Callback to invoke, such as a silent data reload.
+ * @param intervalMs Delay between polls. Defaults to `POLL_INTERVAL_MS`.
+ * @returns A function that clears the timer and removes the listener.
+ */
+export function startPolling(
+  run: () => void,
+  intervalMs = POLL_INTERVAL_MS,
+): () => void {
+  const runIfVisible = () => {
+    if (!document.hidden) run();
+  };
+  const timer = setInterval(runIfVisible, intervalMs);
+  document.addEventListener("visibilitychange", runIfVisible);
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener("visibilitychange", runIfVisible);
+  };
+}
+
+/**
+ * Loads every row from a paginated collection endpoint into React state and
+ * keeps it fresh.
  *
  * On mount, and again whenever `path` changes, the hook requests pages of
  * 100 from `${path}?limit=100&offset=…` until the accumulated rows cover
  * `total` or a page comes back empty. Calling `refresh` runs that load
- * again. An in-flight request is aborted when `path` changes, `refresh`
- * runs, or the component unmounts. An aborted request is ignored. Any
- * other failure is logged and stored as a short error string. `rows` keeps
- * the last successful value until a later load succeeds.
+ * again. While the tab is visible the hook also reloads every
+ * `POLL_INTERVAL_MS`, and when the tab becomes visible again. Those
+ * background reloads are silent: `loading` stays `false`, and a failure is
+ * only logged, so the table keeps its last rows. A successful background
+ * reload clears an earlier error. Only one request is in flight at a time:
+ * a new load aborts the previous one, and so do unmounting and a `path`
+ * change. An aborted request is ignored. Any other failure of a foreground
+ * load is logged and stored as a short error string. `rows` keeps the last
+ * successful value until a later load succeeds.
  *
  * @param path Collection route, such as `/api/lead`. The hook adds the
  * pagination query itself.
  * @returns `{ rows, loading, error, refresh }`.
  * `rows` is `T[]`, empty until the first successful load.
- * `loading` is `boolean`, `true` while a request is in flight, including
- * the first render.
+ * `loading` is `boolean`, `true` while a foreground request is in flight,
+ * including the first render.
  * `error` is `string`: `""` after a successful load, or
- * `"Could not load data. Try again."` after a failed one.
- * `refresh` is `() => void` and starts another load.
+ * `"Could not load data. Try again."` after a failed foreground one.
+ * `refresh` is `() => void` and starts another foreground load.
  */
 export function useCollection<T>(path: string) {
   const [rows, setRows] = useState<T[]>([]);
@@ -116,26 +149,40 @@ export function useCollection<T>(path: string) {
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((value) => value + 1), []);
+  const controllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    void revision;
-    const controller = new AbortController();
-    setLoading(true);
-    setError("");
-    void (async () => {
+  const load = useCallback(
+    async (silent: boolean) => {
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      if (!silent) {
+        setLoading(true);
+        setError("");
+      }
       try {
         const data = await readCollection<T>(path, controller.signal);
         setRows(data);
+        setError("");
         setLoading(false);
       } catch (cause: unknown) {
         if (controller.signal.aborted) return;
         console.error("Could not load CRM data", cause);
+        if (silent) return;
         setError("Could not load data. Try again.");
         setLoading(false);
       }
-    })();
-    return () => controller.abort();
-  }, [path, revision]);
+    },
+    [path],
+  );
+
+  useEffect(() => {
+    void revision;
+    void load(false);
+    return () => controllerRef.current?.abort();
+  }, [load, revision]);
+
+  useEffect(() => startPolling(() => void load(true)), [load]);
 
   return { rows, loading, error, refresh };
 }

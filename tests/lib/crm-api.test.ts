@@ -1,7 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { callApi, readCollection } from "@/lib/crm-api";
+import {
+  callApi,
+  POLL_INTERVAL_MS,
+  readCollection,
+  startPolling,
+} from "@/lib/crm-api";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 describe("callApi", () => {
   it("resolves without parsing JSON on 204", async () => {
@@ -55,5 +63,68 @@ describe("readCollection", () => {
       }),
     );
     await expect(readCollection("/api/lead")).rejects.toThrow("Unavailable");
+  });
+});
+
+describe("startPolling", () => {
+  function stubDocument(hidden: boolean) {
+    const listeners = new Set<() => void>();
+    const documentStub = {
+      hidden,
+      addEventListener: (_type: string, listener: () => void) =>
+        listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) =>
+        listeners.delete(listener),
+    };
+    vi.stubGlobal("document", documentStub);
+    return {
+      documentStub,
+      fireVisibilityChange: () => {
+        for (const listener of listeners) listener();
+      },
+      listeners,
+    };
+  }
+
+  it("polls every 20 seconds while the tab is visible", () => {
+    vi.useFakeTimers();
+    stubDocument(false);
+    const run = vi.fn();
+    startPolling(run);
+
+    vi.advanceTimersByTime(POLL_INTERVAL_MS - 1);
+    expect(run).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(run).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(POLL_INTERVAL_MS);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(POLL_INTERVAL_MS).toBe(20_000);
+  });
+
+  it("skips polls while the tab is hidden and refreshes on return", () => {
+    vi.useFakeTimers();
+    const { documentStub, fireVisibilityChange } = stubDocument(true);
+    const run = vi.fn();
+    startPolling(run);
+
+    vi.advanceTimersByTime(POLL_INTERVAL_MS * 3);
+    fireVisibilityChange();
+    expect(run).not.toHaveBeenCalled();
+
+    documentStub.hidden = false;
+    fireVisibilityChange();
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops the timer and listener when stopped", () => {
+    vi.useFakeTimers();
+    const { listeners } = stubDocument(false);
+    const run = vi.fn();
+    const stop = startPolling(run);
+
+    stop();
+    vi.advanceTimersByTime(POLL_INTERVAL_MS * 3);
+    expect(run).not.toHaveBeenCalled();
+    expect(listeners.size).toBe(0);
   });
 });
